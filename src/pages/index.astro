@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostList from '../components/PostList.astro';
+import { getPosts } from '../lib/content';
+import { site } from '../site';
+
+// Pinned posts first; the sort is stable, so each part stays newest first.
+const posts = (await getPosts()).sort((a, b) => Number(b.data.pinned) - Number(a.data.pinned));
+---
+
+<BaseLayout>
+  <h1 class="sr-only">{site.name}</h1>
+
+  <section aria-labelledby="writing">
+    <h2 id="writing" class="label">Writing</h2>
+    <PostList posts={posts} />
+  </section>
+</BaseLayout>

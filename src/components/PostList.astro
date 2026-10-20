@@ -1,0 +1,37 @@
+---
+import { formatDate, formatMonth, type Post } from '../lib/content';
+
+interface Props {
+  posts: Post[];
+  showTags?: boolean;
+}
+
+const { posts, showTags = false } = Astro.props;
+---
+
+<ul class="posts">
+  {
+    posts.map((post) => (
+      <li>
+        <span class="post-date">
+          <time datetime={formatDate(post.data.date)}>{formatMonth(post.data.date)}</time>
+          {post.data.pinned && (
+            <svg class="pin" viewBox="0 0 16 16" role="img" aria-label="Pinned">
+              <path d="M5 1h6v1.5l-1 1V7l2.5 2.5V11H8.75v3.5L8 16l-.75-1.5V11H3.5V9.5L6 7V3.5l-1-1z" />
+            </svg>
+          )}
+        </span>
+        <span class="post-title">
+          <a href={`/writing/${post.id}/`} lang={post.data.lang}>{post.data.title}</a>
+          {showTags && post.data.tags.length > 0 && (
+            <span class="meta tags">
+              {post.data.tags.map((tag) => (
+                <a href={`/writing/tags/${tag}/`}>#{tag}</a>
+              ))}
+            </span>
+          )}
+        </span>
+      </li>
+    ))
+  }
+</ul>

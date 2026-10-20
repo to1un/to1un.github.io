@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostList from '../../components/PostList.astro';
+import { getPosts } from '../../lib/content';
+
+// Pinned posts sit in their own group above the years, not repeated in them.
+const posts = await getPosts();
+const pinned = posts.filter((post) => post.data.pinned);
+const byYear = Map.groupBy(
+  posts.filter((post) => !post.data.pinned),
+  (post) => post.data.date.getUTCFullYear(),
+);
+---
+
+<BaseLayout title="Writing" description="Everything I have written.">
+  <h1 class="sr-only">Writing</h1>
+  {
+    pinned.length > 0 && (
+      <section class="group" aria-labelledby="pinned">
+        <h2 id="pinned" class="label">Pinned</h2>
+        <PostList posts={pinned} showTags />
+      </section>
+    )
+  }
+  {
+    [...byYear].map(([year, posts]) => (
+      <section class="group" aria-labelledby={`y${year}`}>
+        <h2 id={`y${year}`} class="label">{year}</h2>
+        <PostList posts={posts} showTags />
+      </section>
+    ))
+  }
+</BaseLayout>

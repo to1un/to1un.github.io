@@ -1,0 +1,69 @@
+---
+import '../styles/global.css';
+import { site, type Lang } from '../site';
+
+interface Props {
+  title?: string;
+  description?: string;
+  type?: 'website' | 'article';
+  lang?: Lang; // language of the page content; the chrome is always English
+}
+
+const { title, description = site.description, type = 'website', lang = 'en' } = Astro.props;
+const locales: Record<Lang, string> = { en: 'en_US', tr: 'tr_TR' };
+// When the content is not English, mark the English chrome explicitly.
+const chromeLang = lang === 'en' ? undefined : 'en';
+// The owner's name follows page titles, and the homepage's title is the name alone (see
+// src/site.ts); the header link stays site.name.
+const homeTitle = site.owner ?? site.name;
+const pageTitle = title ? (site.owner ? `${title} · ${site.owner}` : title) : homeTitle;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const rss = new URL('rss.xml', Astro.site);
+const path = Astro.url.pathname;
+const nav = [
+  { label: 'Writing', href: '/writing/' },
+];
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title={site.owner ?? 'Writing'} href={rss} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta property="og:type" content={type} />
+    {site.owner && <meta property="og:site_name" content={site.owner} />}
+    <meta property="og:title" content={title ?? homeTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={locales[lang]} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title ?? homeTitle} />
+    <meta name="twitter:description" content={description} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main" lang={chromeLang}>Skip to content</a>
+    <header class="site-header" lang={chromeLang}>
+      <a href="/" class="site-name">{site.name}</a>
+      <nav aria-label="Main">
+        {
+          nav.map((item) => (
+            <a href={item.href} aria-current={path.startsWith(item.href) ? 'page' : undefined}>
+              {item.label}
+            </a>
+          ))
+        }
+      </nav>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="site-footer" lang={chromeLang}>
+      <p>© {new Date().getFullYear()}{site.owner && ` ${site.owner}`} · <a href="/rss.xml">RSS</a></p>
+    </footer>
+  </body>
+</html>
