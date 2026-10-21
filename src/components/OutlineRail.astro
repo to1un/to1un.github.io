@@ -1,0 +1,57 @@
+---
+// The outline on wide screens: a rail fixed near the right edge of the viewport. Collapsed, each
+// h2/h3 is a short dash (h3 shorter); on hover or keyboard focus it opens into a small panel
+// with the heading texts. The script marks the section being read (aria-current); without JS the
+// links still work, just without the highlight. Shown from the breakpoint in global.css.
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  headings: MarkdownHeading[];
+}
+---
+
+<nav class="outline-rail" aria-label="Contents">
+  <ol>
+    {
+      Astro.props.headings.map((heading) => (
+        <li class={`rail-h${heading.depth}`}>
+          <a href={`#${heading.slug}`}>
+            <span class="rail-text">{heading.text}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<script>
+  // Scrollspy. The observer's root reaches from far above the page down to 30% of the viewport
+  // height, so a heading "intersects" exactly while it sits above that reading line. Every scroll
+  // or jump that moves a heading across the line flips its state; the current section is the last
+  // heading above the line.
+  const rail = document.querySelector<HTMLElement>('.outline-rail');
+  if (rail && 'IntersectionObserver' in window) {
+    const links = [...rail.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')];
+    const above = new Map<Element, boolean>();
+    const index = new Map<Element, number>();
+    links.forEach((link, i) => {
+      const heading = document.getElementById(decodeURIComponent(link.hash.slice(1)));
+      if (heading) index.set(heading, i);
+    });
+    let current: HTMLAnchorElement | undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) above.set(entry.target, entry.isIntersecting);
+        let last = -1;
+        for (const [heading, i] of index) if (above.get(heading) && i > last) last = i;
+        const next = links[last];
+        if (next === current) return;
+        current?.removeAttribute('aria-current');
+        next?.setAttribute('aria-current', 'true');
+        current = next;
+      },
+      { rootMargin: '100000px 0px -70% 0px' },
+    );
+    for (const heading of index.keys()) observer.observe(heading);
+  }
+</script>

@@ -1,0 +1,34 @@
+---
+// A post's outline as a list: its h2 and h3 headings, each h3 nested under the h2 before it.
+// The links keep the post's language (inherited from <html>).
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  headings: MarkdownHeading[];
+}
+
+const items: { heading: MarkdownHeading; children: MarkdownHeading[] }[] = [];
+for (const heading of Astro.props.headings) {
+  if (heading.depth === 3 && items.length) items[items.length - 1].children.push(heading);
+  else if (heading.depth === 2 || heading.depth === 3) items.push({ heading, children: [] });
+}
+---
+
+<ol>
+  {
+    items.map(({ heading, children }) => (
+      <li>
+        <a href={`#${heading.slug}`}>{heading.text}</a>
+        {children.length > 0 && (
+          <ol>
+            {children.map((child) => (
+              <li>
+                <a href={`#${child.slug}`}>{child.text}</a>
+              </li>
+            ))}
+          </ol>
+        )}
+      </li>
+    ))
+  }
+</ol>

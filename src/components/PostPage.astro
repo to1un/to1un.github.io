@@ -1,0 +1,70 @@
+---
+// A long-form page (a post): one centered column of --measure for the header and the
+// body. Longer entries get an outline: a collapsed "Contents" box at the top on narrower
+// screens, a rail at the right edge of the viewport on wide ones (OutlineRail). Body images zoom
+// on click (ImageZoom).
+import { render } from 'astro:content';
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostOutline from './PostOutline.astro';
+import OutlineRail from './OutlineRail.astro';
+import ImageZoom from './ImageZoom.astro';
+import { formatDate, type Post } from '../lib/content';
+
+interface Props {
+  entry: Post;
+}
+
+const { entry } = Astro.props;
+const { title, description, date, updated, tags, lang, cover, coverAlt } = entry.data;
+// The body follows `lang`; English chrome inside the page is marked explicitly.
+const chromeLang = lang === 'en' ? undefined : 'en';
+const { Content, headings } = await render(entry);
+// An outline only pays off on longer entries: at least three h2/h3 headings.
+const outline = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const hasOutline = outline.length >= 3;
+---
+
+<BaseLayout title={title} description={description} type="article" lang={lang}>
+  <article class="post-layout">
+    <header class="post-header">
+      <h1>{title}</h1>
+      <p class="meta">
+        <time datetime={formatDate(date)}>{formatDate(date)}</time>
+        {updated && <> · <span lang={chromeLang}>updated</span> <time datetime={formatDate(updated)}>{formatDate(updated)}</time></>}
+        {tags.map((tag) => <> · <a href={`/writing/tags/${tag}/`}>#{tag}</a></>)}
+      </p>
+    </header>
+    {
+      hasOutline && (
+        <>
+          <details class="outline outline-inline">
+            <summary id="toc-label-inline" lang={chromeLang}>Contents</summary>
+            <nav aria-labelledby="toc-label-inline">
+              <PostOutline headings={outline} />
+            </nav>
+          </details>
+          <OutlineRail headings={outline} />
+        </>
+      )
+    }
+    {
+      cover && (
+        <Image
+          class="post-cover"
+          src={cover}
+          alt={coverAlt ?? ''}
+          widths={[480, 720, 1080, 1440]}
+          sizes="(min-width: 48em) 680px, 100vw"
+          loading="eager"
+          fetchpriority="high"
+        />
+      )
+    }
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+  <p class="more" lang={chromeLang}><a href="/writing/">← All writing</a></p>
+  <ImageZoom />
+</BaseLayout>

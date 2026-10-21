@@ -277,3 +277,485 @@ main > h1 {
 .tags a:hover {
   text-decoration: underline;
 }
+
+/* Post pages: header and body share one centered column (Medium-like). The text is a size
+   smaller than the rest of the site (16px), and its headings, meta line and code with it (8/9 of
+   the site's sizes). */
+
+.post-layout,
+.post-layout + .more {
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+.post-layout {
+  font-size: 1rem;
+}
+
+.post-layout h2 {
+  font-size: 1.22rem;
+}
+
+.post-layout h3 {
+  font-size: 1rem;
+}
+
+.post-layout pre {
+  font-size: 0.83rem;
+}
+
+.post-header {
+  margin-bottom: 2.5rem;
+}
+
+.post-header h1 {
+  font-size: clamp(1.45rem, 1.15rem + 1.07vw, 1.78rem);
+  margin-bottom: 0.75rem;
+  text-wrap: pretty;
+}
+
+.post-header .meta {
+  margin: 0;
+}
+
+.post-header :is(.meta, time) {
+  font-size: 0.72rem;
+}
+
+.post-header .meta a {
+  color: var(--muted);
+}
+
+.post-layout + .more {
+  margin-top: 3.5rem;
+}
+
+/* Post outline: a collapsed box above the cover on narrow screens; from 52em a rail of dashes at
+   the right edge of the viewport instead (the dashes only need ~3rem beside the column).
+   Its open panel floats over the page like Medium's and may overlap the column's edge. */
+
+.prose :is(h2, h3, h4, h5, h6) {
+  scroll-margin-top: 1.5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:has(.outline, .outline-rail) {
+    scroll-behavior: smooth;
+  }
+}
+
+.outline ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.outline ol ol {
+  padding-left: 0.9rem;
+}
+
+.outline li {
+  margin-top: 0.3rem;
+}
+
+.outline a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.outline a:hover {
+  color: var(--fg);
+  text-decoration: underline;
+}
+
+.outline-inline {
+  margin: 0 0 2.5rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.83rem;
+  line-height: 1.45;
+}
+
+.outline-inline summary {
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.outline-inline[open] summary {
+  margin-bottom: 0.4rem;
+}
+
+.outline-inline nav {
+  padding-bottom: 0.3rem;
+}
+
+.outline-rail {
+  display: none;
+}
+
+@media (min-width: 52em) {
+  .outline-inline {
+    display: none;
+  }
+
+  /* Collapsed: one muted dash per heading, h3 shorter. */
+  .outline-rail {
+    display: block;
+    position: fixed;
+    z-index: 10;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    max-height: calc(100vh - 4rem);
+    max-height: calc(100svh - 4rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 10px;
+  }
+
+  .outline-rail ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .outline-rail a {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: 0.75rem;
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .outline-rail a::before {
+    content: '';
+    width: 1.25rem;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    opacity: 0.55;
+  }
+
+  .outline-rail .rail-h3 a::before {
+    width: 0.75rem;
+  }
+
+  .outline-rail a[aria-current='true'] {
+    color: var(--fg);
+  }
+
+  .outline-rail a[aria-current='true']::before {
+    opacity: 1;
+  }
+
+  .rail-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Open: a small panel with one line per heading, as wide as the room right of the column. */
+  .outline-rail:is(:hover, :focus-within) {
+    width: clamp(14rem, calc((100vw - var(--measure)) / 2 - 2rem), 18rem);
+    border-color: var(--border);
+    background: var(--surface);
+    box-shadow: 0 8px 24px -12px rgb(0 0 0 / 0.35);
+  }
+
+  .outline-rail:is(:hover, :focus-within) a {
+    height: auto;
+    justify-content: flex-start;
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+  }
+
+  .outline-rail:is(:hover, :focus-within) .rail-h3 a {
+    padding-left: 1.25rem;
+  }
+
+  .outline-rail:is(:hover, :focus-within) a::before {
+    display: none;
+  }
+
+  .outline-rail:is(:hover, :focus-within) .rail-text {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+    text-overflow: ellipsis;
+  }
+
+  .outline-rail a:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  .outline-rail a[aria-current='true'] .rail-text {
+    font-weight: 600;
+  }
+
+  .outline-rail a:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+@media (min-width: 52em) and (prefers-reduced-motion: no-preference) {
+  .outline-rail:is(:hover, :focus-within) ol {
+    animation: rail-open 0.15s ease-out;
+  }
+}
+
+@keyframes rail-open {
+  from {
+    opacity: 0;
+    transform: translateX(0.25rem);
+  }
+}
+
+/* Click-to-zoom images (ImageZoom.astro): the zoomed copy and its backdrop. */
+
+.zoomable {
+  cursor: zoom-in;
+}
+
+.zoom-source {
+  opacity: 0;
+}
+
+.zoom-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: color-mix(in srgb, var(--bg) 98%, transparent);
+  cursor: zoom-out;
+}
+
+.zoom-img {
+  position: fixed;
+  z-index: 101;
+  max-width: none;
+  margin: 0;
+  border-radius: 4px;
+  transform-origin: 0 0;
+  cursor: zoom-out;
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose blockquote {
+  margin: 1.75rem 0;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--border);
+  color: var(--muted);
+}
+
+.prose ul,
+.prose ol {
+  margin: 0 0 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.prose li + li {
+  margin-top: 0.35rem;
+}
+
+.prose img {
+  display: block;
+  margin: 2rem auto;
+  border-radius: 4px;
+}
+
+.post-cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 2.5rem;
+  border-radius: 8px;
+}
+
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-size: 0.89rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 1.75rem 0 0.5rem;
+}
+
+.prose hr {
+  margin: 2.5rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.prose mark {
+  padding: 0 0.15em;
+  border-radius: 3px;
+  background: var(--mark);
+  color: inherit;
+}
+
+.prose table {
+  display: block; /* lets wide tables scroll instead of overflowing the column */
+  max-width: 100%;
+  margin: 1.75rem 0;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+
+.prose th,
+.prose td {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.prose iframe {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin: 2rem 0;
+  border: 0;
+  border-radius: 8px;
+}
+
+/* Callouts (migrated Chirpy prompts): a quiet accent border and a small label. */
+
+.prose .callout {
+  --accent: var(--info);
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+  background: var(--surface);
+  color: var(--fg);
+}
+
+.prose .callout::before {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  /* Labels are written in capitals: text-transform would follow the post's lang (tr: "TİP"). */
+}
+
+.prose .callout > :last-child {
+  margin-bottom: 0;
+}
+
+.prose .callout-tip {
+  --accent: var(--tip);
+}
+
+.prose .callout-tip::before {
+  content: 'TIP';
+}
+
+.prose .callout-info::before {
+  content: 'INFO';
+}
+
+.prose .callout-warning {
+  --accent: var(--warning);
+}
+
+.prose .callout-warning::before {
+  content: 'WARNING';
+}
+
+.prose .callout-danger {
+  --accent: var(--danger);
+}
+
+.prose .callout-danger::before {
+  content: 'DANGER';
+}
+
+/* Collapsible sections (migrated Chirpy drawers). */
+
+.prose details {
+  margin: 1.5rem 0;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.prose summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.prose details[open] > summary {
+  margin-bottom: 1rem;
+}
+
+.prose details > :last-child {
+  margin-bottom: 0;
+}
+
+.prose details img {
+  margin: 1rem auto;
+}
+
+/* Code block with a file name caption. */
+
+.prose .code-file {
+  margin: 1.75rem 0;
+}
+
+.prose .code-file figcaption {
+  margin-bottom: 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.prose .code-file pre {
+  margin: 0;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.875em;
+}
+
+:not(pre) > code {
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+pre {
+  margin: 1.75rem 0;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  background: var(--surface); /* Shiki blocks bring their own */
+}

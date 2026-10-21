@@ -1,0 +1,113 @@
+---
+// Click-to-zoom for the cover and body images of a post: the image grows from its place
+// to fit the viewport over a backdrop in the page colour. A click anywhere, Esc or scrolling
+// closes it. Images inside links keep their link. Styles: .zoom-* in global.css.
+---
+
+<script>
+  type Zoom = { img: HTMLImageElement; clone: HTMLImageElement; backdrop: HTMLElement; y: number };
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  const easing = 'cubic-bezier(0.2, 0, 0.2, 1)';
+  let zoom: Zoom | null = null;
+
+  const hint = Object.assign(document.createElement('span'), { id: 'zoom-hint', hidden: true, textContent: 'Opens a larger view' });
+  hint.lang = 'en';
+  document.body.append(hint);
+
+  for (const img of document.querySelectorAll<HTMLImageElement>('.post-cover, .prose img')) {
+    if (img.closest('a')) continue;
+    img.classList.add('zoomable');
+    img.addEventListener('click', () => toggle(img));
+    if (!img.alt) continue; // decorative: mouse only
+    img.tabIndex = 0;
+    img.setAttribute('role', 'button');
+    img.setAttribute('aria-describedby', hint.id);
+    img.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle(img);
+      }
+    });
+  }
+
+  // The widest candidate of a srcset (the cover), if any.
+  function largest(img: HTMLImageElement) {
+    let best = { url: '', w: 0 };
+    for (const part of img.srcset.split(',')) {
+      const [url, size = ''] = part.trim().split(/\s+/);
+      const w = parseFloat(size);
+      if (url && size.endsWith('w') && w > best.w) best = { url, w };
+    }
+    return best;
+  }
+
+  function toggle(img: HTMLImageElement) {
+    if (zoom) close();
+    else open(img);
+  }
+
+  function open(img: HTMLImageElement) {
+    const r = img.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth;
+    const vh = window.innerHeight;
+    const margin = Math.min(32, vw * 0.04);
+    const big = largest(img);
+    // `f=svg`: the dev server's image endpoint.
+    const svg = /\.svg\b|[?&]f=svg\b/.test(img.currentSrc || img.src);
+    // Fit the viewport; raster images stop at twice their own pixels (SVGs scale freely).
+    const pixels = Math.max(img.naturalWidth, big.w); // 0 while a lazy image is still loading
+    const cap = svg || !pixels ? Infinity : Math.max(1, (2 * pixels) / r.width);
+    const s = Math.min((vw - 2 * margin) / r.width, (vh - 2 * margin) / r.height, cap);
+    const w = r.width * s;
+    const h = r.height * s;
+    const left = (vw - w) / 2;
+    const top = (vh - h) / 2;
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'zoom-backdrop';
+    const clone = new Image();
+    clone.className = 'zoom-img';
+    clone.alt = '';
+    clone.src = img.currentSrc || img.src;
+    // Keeps the inversion of `*.dark.svg` diagrams on light skies.
+    Object.assign(clone.style, { left: `${left}px`, top: `${top}px`, width: `${w}px`, height: `${h}px`, filter: getComputedStyle(img).filter });
+    for (const el of [backdrop, clone]) {
+      el.setAttribute('aria-hidden', 'true');
+      el.addEventListener('click', close);
+    }
+    document.body.append(backdrop, clone);
+    img.classList.add('zoom-source');
+    zoom = { img, clone, backdrop, y: window.scrollY };
+
+    if (big.url) {
+      const hi = new Image();
+      hi.onload = () => zoom?.clone === clone && (clone.src = hi.src);
+      hi.src = big.url;
+    }
+    if (motion.matches) return;
+    // FLIP: laid out at the final size (crisp), animated from the original box.
+    clone.animate([{ transform: `translate(${r.left - left}px, ${r.top - top}px) scale(${1 / s})` }, { transform: 'none' }], { duration: 300, easing });
+    backdrop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing });
+  }
+
+  function close() {
+    if (!zoom) return;
+    const { img, clone, backdrop } = zoom;
+    zoom = null;
+    const done = () => {
+      clone.remove();
+      backdrop.remove();
+      img.classList.remove('zoom-source');
+    };
+    if (motion.matches) return done();
+    const r = img.getBoundingClientRect();
+    const c = clone.getBoundingClientRect();
+    const to = `translate(${r.left - c.left}px, ${r.top - c.top}px) scale(${r.width / c.width})`;
+    clone.animate([{ transform: 'none' }, { transform: to }], { duration: 250, easing, fill: 'forwards' }).onfinish = done;
+    backdrop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, easing, fill: 'forwards' });
+  }
+
+  document.addEventListener('keydown', (e) => e.key === 'Escape' && close());
+  window.addEventListener('scroll', () => zoom && Math.abs(window.scrollY - zoom.y) > 40 && close(), { passive: true });
+  window.addEventListener('resize', close);
+</script>
