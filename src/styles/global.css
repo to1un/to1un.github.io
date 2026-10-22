@@ -1,17 +1,7 @@
 :root {
-  /* Colours */
-  color-scheme: light;
-  --bg: #f5f2ea;
-  --fg: #1c1c1a;
-  --muted: #5d5c58;
-  --faint: #b8b6b0; /* link underlines */
-  --surface: #eae7e0;
-  --border: #dbd8d1;
-  --mark: #f7e6a4;
-  --tip: #3e6c48;
-  --info: #3b5f8e;
-  --warning: #7f5a0e;
-  --danger: #9c3a31;
+  /* Colour tokens (--bg, --fg, --muted, --faint, --surface, --border, --mark, --tip, --info,
+     --warning, --danger): day or night, see src/lib/sky.ts. */
+  color-scheme: light dark;
 
   /* Type */
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans',
@@ -24,6 +14,28 @@
   --measure: 42.5rem; /* long-form column width, fixed whatever the text size */
   --section: clamp(4rem, 9vw, 6rem); /* space above the footer */
   --radius: 12px;
+}
+
+/* Shiki dual themes: the dark token colours at night (data-scheme, set by the pre-paint
+   script); without JS, when the system prefers dark. */
+:root[data-scheme='dark'] .astro-code,
+:root[data-scheme='dark'] .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-scheme]) .astro-code,
+  :root:not([data-scheme]) .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
 }
 
 *,
@@ -206,7 +218,7 @@ main > h1 {
 .site-header nav {
   display: flex;
   gap: 1.5rem;
-  margin-left: auto;
+  margin-left: auto; /* with the theme toggle beside it, on the right */
 }
 
 .site-header nav a {
@@ -578,6 +590,18 @@ main > h1 {
   display: block;
   margin: 2rem auto;
   border-radius: 4px;
+}
+
+/* Diagrams drawn for a dark background (`*.dark.svg`) are inverted on light skies; the hue
+   rotation keeps their accent colours roughly in place. */
+:root[data-scheme='light'] .prose img[src*='.dark.'] {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-scheme]) .prose img[src*='.dark.'] {
+    filter: invert(1) hue-rotate(180deg);
+  }
 }
 
 .post-cover {

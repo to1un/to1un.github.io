@@ -1,6 +1,9 @@
 ---
 import '../styles/global.css';
 import { site, type Lang } from '../site';
+import { inlineSource } from '../lib/inline';
+import ThemeToggle from '../components/ThemeToggle.astro';
+import { SKY, runSky, skyCss } from '../lib/sky';
 
 interface Props {
   title?: string;
@@ -23,6 +26,9 @@ const path = Astro.url.pathname;
 const nav = [
   { label: 'Writing', href: '/writing/' },
 ];
+// Day or night: the visitor's choice (the toggle), else their system's colour scheme, set on
+// <html> before first paint. Without JS, prefers-color-scheme alone decides.
+const skyScript = `(${inlineSource(runSky)})(${JSON.stringify(SKY.key)})`;
 ---
 
 <!doctype html>
@@ -30,6 +36,9 @@ const nav = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <style is:inline set:html={skyCss()}></style>
+    <script is:inline set:html={skyScript}></script>
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
@@ -58,6 +67,7 @@ const nav = [
           ))
         }
       </nav>
+      <ThemeToggle />
     </header>
     <main id="main">
       <slot />
