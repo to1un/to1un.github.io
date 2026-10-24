@@ -1,0 +1,878 @@
+---
+// The scenes' figure: a flat scarecrow (the approved sketch, refined) facing left, standing in
+// the field of the scene (Landscape), with the certifications (src/data/certs.ts) pinned on its
+// shirt as enamel badges. Everything is static SVG except the cape, a Verlet cloth moved only by
+// wind from the pointer, and the pupils, which follow the pointer. Colours: the --c-* of the
+// scene around it (Landscape, day or night), the cape and eyes in the owner's team colour. One per page: its
+// view-transition-name pairs the homepage figure with the big one on /about.
+//
+// With `silhouette` (the homepage), every part takes the one backlit colour, with a faint rim
+// of light on the sun side and glowing eyes, and there are no badges. Goal badges (certs not
+// earned yet) are dimmed. With `links` (/about), each badge has a label on hover and focus, and
+// those with a verification page link to it; without, the figure is purely decorative. `cut` is where the wheat in front of it reaches, in the
+// figure's SVG units: nothing below is drawn (the wheat itself is the scene's).
+import { FIGURE_KEYS } from '../lib/hero/palette';
+import { restOutline } from '../lib/hero/cape';
+import { certs, certStatus } from '../data/certs';
+import { site } from '../site';
+
+interface Props {
+  links?: boolean;
+  silhouette?: boolean;
+  cut?: number;
+}
+
+const { links = false, silhouette = false, cut = 232 } = Astro.props;
+
+const colourRules =
+  FIGURE_KEYS.map(
+    (k) => `.hero-scarecrow .sc-${k}{fill:var(--c-${k})}.hero-scarecrow .sc-${k}-s{fill:none;stroke:var(--c-${k})}`,
+  ).join('') + `.hero-scene.silhouette{${FIGURE_KEYS.map((k) => `--c-${k}:var(--c-silhouette)`).join(';')}}`;
+// The cut as a clip on the SVG (inside the view-transition element, so the snapshot keeps it);
+// the clip runs far out at the sides and the top, where the cape may blow.
+const cutAt = `${(((cut - 28) / 204) * 100).toFixed(2)}%`; // share of the viewBox (y 28 … 232)
+const clip = `clip-path:polygon(-100% -100%,200% -100%,200% ${cutAt},-100% ${cutAt})`;
+const badgesShown = !silhouette;
+
+// ---- Badges: a grid on the left of the chest (shirt coordinates, before the shirt's tilt),
+// two across for up to four, three across beyond. Shapes take turns.
+const SHAPES = ['shield', 'hex', 'circle', 'square'] as const;
+const TILT = -2; // the shirt group's rotation, around (80, 104)
+const cols = certs.length <= 4 ? 2 : 3;
+const size = cols === 2 ? 14 : 10; // badge width in SVG units
+const gap = cols === 2 ? 3 : 2;
+const area = { x: 61, y: 110, w: 32 }; // left of the shaded side, under the collar
+const n = (v: number) => Number(v.toFixed(2));
+
+function outline(shape: (typeof SHAPES)[number], cx: number, cy: number, r: number) {
+  switch (shape) {
+    case 'shield':
+      return `M${n(cx - r)} ${n(cy - r * 0.85)} H${n(cx + r)} V${n(cy + r * 0.1)} Q${n(cx + r)} ${n(cy + r * 0.7)} ${n(cx)} ${n(cy + r * 1.05)} Q${n(cx - r)} ${n(cy + r * 0.7)} ${n(cx - r)} ${n(cy + r * 0.1)} Z`;
+    case 'hex':
+      return (
+        Array.from({ length: 6 }, (_, k) => {
+          const a = (Math.PI / 3) * k + Math.PI / 6;
+          return `${k ? 'L' : 'M'}${n(cx + Math.cos(a) * r * 1.08)} ${n(cy + Math.sin(a) * r * 1.08)}`;
+        }).join(' ') + ' Z'
+      );
+    case 'circle':
+      return `M${n(cx - r)} ${n(cy)} A${r} ${r} 0 1 0 ${n(cx + r)} ${n(cy)} A${r} ${r} 0 1 0 ${n(cx - r)} ${n(cy)} Z`;
+    case 'square': {
+      const h = r * 0.9;
+      const c = r * 0.3;
+      return `M${n(cx - h + c)} ${n(cy - h)} H${n(cx + h - c)} Q${n(cx + h)} ${n(cy - h)} ${n(cx + h)} ${n(cy - h + c)} V${n(cy + h - c)} Q${n(cx + h)} ${n(cy + h)} ${n(cx + h - c)} ${n(cy + h)} H${n(cx - h + c)} Q${n(cx - h)} ${n(cy + h)} ${n(cx - h)} ${n(cy + h - c)} V${n(cy - h + c)} Q${n(cx - h)} ${n(cy - h)} ${n(cx - h + c)} ${n(cy - h)} Z`;
+    }
+  }
+}
+
+const rowWidth = cols * size + (cols - 1) * gap;
+const badges = certs.map((cert, i) => {
+  const r = size / 2;
+  const cx = area.x + (area.w - rowWidth) / 2 + (i % cols) * (size + gap) + r;
+  const cy = area.y + Math.floor(i / cols) * (size + gap) + r;
+  // Where the badge's top ends up after the tilt, as a share of the viewBox (20 28 120 204),
+  // for the HTML label above it.
+  const a = (TILT * Math.PI) / 180;
+  const tx = 80 + (cx - 80) * Math.cos(a) - (cy - r - 104) * Math.sin(a);
+  const ty = 104 + (cx - 80) * Math.sin(a) + (cy - r - 104) * Math.cos(a);
+  return {
+    ...cert,
+    i,
+    d: outline(SHAPES[i % SHAPES.length], cx, cy, r),
+    cx: n(cx),
+    cy: n(cy),
+    r,
+    font: n(size * (cert.code.length > 3 ? 0.27 : 0.36)),
+    fit: cert.code.length > 3 ? n(size * 0.72) : undefined,
+    goal: cert.status === 'goal',
+    meta: certStatus(cert),
+    label: `${cert.name}, ${cert.issuer}, ${cert.status === 'goal' ? 'goal' : certStatus(cert)}`,
+    tip: { left: n(((tx - 20) / 120) * 100), top: n(((ty - 28) / 204) * 100) },
+  };
+});
+const tipRules = badges
+  .map((b) => `.hero-scene:has([data-badge="${b.i}"]:is(:hover,:focus-visible)) [data-tip="${b.i}"]{opacity:1;visibility:visible}`)
+  .join('');
+---
+
+<div class:list={['hero-scene', { silhouette }]}>
+  <svg
+    class="hero-scarecrow"
+    viewBox="20 28 120 204"
+    role={links ? 'group' : 'img'}
+    aria-label={`A ragged scarecrow with a sack head and a torn ${site.team} cape${certs.length && badgesShown ? ', badges pinned on its shirt' : ''}`}
+    style={clip}
+    data-hero-scarecrow
+    data-silhouette={silhouette || undefined}
+  >
+    <defs>
+      <clipPath id="sc-head-clip"><ellipse cx="78" cy="75" rx="17" ry="19"></ellipse></clipPath>
+      {
+        silhouette && (
+          <radialGradient id="sc-eye-glow">
+            <stop class="sc-glow-core" offset="0" stop-opacity="0.9" />
+            <stop class="sc-glow-edge" offset="0.4" stop-opacity="0.4" />
+            <stop class="sc-glow-edge" offset="1" stop-opacity="0" />
+          </radialGradient>
+        )
+      }
+    </defs>
+
+    <!-- Cape: behind everything; the script replaces the still with simulated cloth. -->
+    <g class="cape" data-cape>
+      <polygon class="sc-cape" points={restOutline()} data-cape-still></polygon>
+    </g>
+
+    <!-- Post. -->
+    <rect class="sc-post" x="77" y="95" width="6" height="131"></rect>
+    <rect class="sc-postShade" x="81" y="95" width="2" height="131"></rect>
+
+    <!-- Crossbar, sleeves and shirt, hung a little crooked. -->
+    <g transform="rotate(-2 80 104)">
+      <rect class="sc-post" x="34" y="102" width="92" height="5"></rect>
+      <rect class="sc-postShade" x="34" y="105.5" width="92" height="1.5"></rect>
+      <path
+        class="sc-straw-s"
+        d="M34 104 l-8 -4 M34 105 l-9 2 M34 106 l-6 7 M35 104.5 l-7 -1 M126 104 l8 -4 M126 105 l9 2 M126 106 l6 7 M125 105.5 l7 4"
+        stroke-width="2"
+        stroke-linecap="round"></path>
+      <!-- Torn sleeve rags wound round the bar. -->
+      <path class="sc-shirtShade" d="M61 102.5 L48 101.5 L46 108.5 L50 107 L52 111 L55 107.5 L58 110 L61 108 Z"></path>
+      <path class="sc-shirtShade" d="M99 102.5 L113 101.5 L115 108 L111 106.5 L109 111 L106 107.5 L102 110 L99 108 Z"></path>
+      <path class="sc-shirt" d="M58 103.5 L102 103.5 L107 157 L98 151.5 L91 159 L82 152.5 L73 160 L65 152.5 L54 157 Z"></path>
+      <path class="sc-shirtShade" d="M94 103.5 L102 103.5 L107 157 L98 151.5 L91 159 L92.5 131 Z"></path>
+      <!-- A patch with running stitches, low on the side. -->
+      <path class="sc-shirtShade" d="M80 140 L89 139.5 L89.5 148 L80.5 148.5 Z"></path>
+      <path class="sc-seam-s" d="M80 140 L89 139.5 L89.5 148 L80.5 148.5 Z" stroke-width="0.6" stroke-dasharray="1.4 1.2"></path>
+      <!-- Straw poking out under the hem. -->
+      <path
+        class="sc-straw-s"
+        d="M69 155 l-2 8 M71 156 l1 6 M85 155 l2 7 M100 153 l3 7 M60 155 l-3 5"
+        stroke-width="1.3"
+        stroke-linecap="round"></path>
+      <!-- The badges, pinned on the chest. -->
+      {
+        badgesShown &&
+        badges.map((b) => {
+          const pin = (
+            <Fragment>
+              <path class="sc-shirtShade badge-shadow" d={b.d} transform="translate(0.5 0.7)" />
+              <path class="badge-enamel" d={b.d} fill={b.color} />
+              <ellipse class="badge-shine" cx={b.cx - b.r * 0.35} cy={b.cy - b.r * 0.45} rx={b.r * 0.32} ry={b.r * 0.16} transform={`rotate(-25 ${b.cx - b.r * 0.35} ${b.cy - b.r * 0.45})`} />
+              <text class="badge-code" x={b.cx} y={b.cy} font-size={b.font} textLength={b.fit} lengthAdjust={b.fit && 'spacingAndGlyphs'}>
+                {b.code}
+              </text>
+            </Fragment>
+          );
+          // A link to the verification page if there is one; else, with labels, described as an
+          // image (not focusable, the label still shows on hover).
+          const cls = ['badge', { goal: b.goal }];
+          return links && b.url ? (
+            <a class:list={cls} href={b.url} aria-label={b.label} data-badge={b.i}>
+              {pin}
+            </a>
+          ) : links ? (
+            <g class:list={cls} role="img" aria-label={b.label} data-badge={b.i}>
+              {pin}
+            </g>
+          ) : (
+            <g class:list={cls}>{pin}</g>
+          );
+        })
+      }
+    </g>
+
+    <!-- Head: its own group; the eyes in theirs, with pupils that follow the pointer. -->
+    <g data-hero-head transform="rotate(-4 78 92)">
+      <path class="sc-sackShade" d="M70 89 L86 89 L85 104 L80.5 102 L76.5 105 L72 103 Z"></path>
+      <ellipse class="sc-sackShade" cx="78" cy="75" rx="17" ry="19"></ellipse>
+      <ellipse class="sc-sack" cx="75.5" cy="73.5" rx="16" ry="18.6" clip-path="url(#sc-head-clip)"></ellipse>
+      <!-- Seams of the sack. -->
+      <path class="sc-seam-s" d="M90.5 62 Q94.5 76 89 91" stroke-width="0.7" stroke-dasharray="1.6 1.3"></path>
+      <path class="sc-seam-s" d="M63 64 Q76 60.5 92 65" stroke-width="0.6" stroke-dasharray="1.4 1.4" opacity="0.8"></path>
+      <g data-hero-eyes>
+        <ellipse class="sc-eye" data-eye="near" cx="69" cy="71" rx="4.5" ry="5.5"></ellipse>
+        <ellipse class="sc-eye" data-eye="far" cx="81" cy="72" rx="3.5" ry="4.5"></ellipse>
+        <!-- At rest they look left, the way it faces. Against the light, they glow. -->
+        <g data-pupil="near" transform="translate(-1.2 0.3)">
+          {silhouette && <circle cx="69" cy="71" r="5" fill="url(#sc-eye-glow)" />}
+          <circle class="sc-pupil" cx="69" cy="71" r="1.7"></circle>
+        </g>
+        <g data-pupil="far" transform="translate(-0.9 0.3)">
+          {silhouette && <circle cx="81" cy="72" r="4" fill="url(#sc-eye-glow)" />}
+          <circle class="sc-pupil" cx="81" cy="72" r="1.35"></circle>
+        </g>
+      </g>
+      <path class="sc-eye-s" d="M65 85 L87 83 M68 81 v7 M73 81 v7 M78 80 v7 M83 80 v7" stroke-width="1.5"></path>
+      <!-- Rope tied round the neck, one end hanging. -->
+      <path class="sc-rope-s" d="M69.5 93 Q78 96.5 86.5 92.5" stroke-width="2.2" stroke-linecap="round"></path>
+      <path class="sc-rope-s" d="M84 95 l1.6 6.5 M84.6 94.6 l-1.4 5.4" stroke-width="1.1" stroke-linecap="round"></path>
+      <circle class="sc-rope" cx="84.3" cy="94.3" r="1.6"></circle>
+      <!-- Crooked wide-brim hat. -->
+      <g class="hat">
+        <ellipse class="sc-hat" cx="76" cy="58" rx="29" ry="5" transform="rotate(-8 76 58)"></ellipse>
+        <path class="sc-hat" d="M63 57 L67 37 L80 34 L88 40 L90 55 Z"></path>
+        <path class="sc-hatShade" d="M80 34 L88 40 L90 55 L84.5 55.8 Z"></path>
+        <path class="sc-hatShade" d="M63.6 53 L89.5 50.6 L90 55 L63 57 Z"></path>
+        <path class="sc-hatShade-s" d="M70 39.5 L73.5 47" stroke-width="0.9" stroke-linecap="round"></path>
+      </g>
+    </g>
+  </svg>
+  {
+    links &&
+      badges.map((b) => (
+        <span class="badge-tip" aria-hidden="true" data-tip={b.i} style={`left:${b.tip.left}%;top:${b.tip.top}%`}>
+          {b.issuer} {b.name}
+          <span class="meta">{b.meta}</span>
+        </span>
+      ))
+  }
+</div>
+
+<style is:inline set:html={colourRules}></style>
+{links && <style is:inline set:html={tipRules}></style>}
+
+<style>
+  /* Pages with the scarecrow (the homepage and /about) morph into each other when navigating
+     between them: the figure and the sun grow or shrink in place (view-transition-name). */
+  @media (prefers-reduced-motion: no-preference) {
+    @view-transition {
+      navigation: auto;
+    }
+  }
+
+  /* The cape may blow past the edge of the page, and the sun's glow reaches past it: never let
+     them cause a horizontal scroll. On the root too, or the body's value would only be
+     passed on to the viewport (as hidden, which still scrolls) instead of clipping. */
+  :global(:root:has(.hero-scene)),
+  :global(body:has(.hero-scene)) {
+    overflow-x: clip;
+  }
+
+  .hero-scene {
+    position: relative;
+    view-transition-name: scene-scarecrow;
+  }
+
+  .hero-scarecrow {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Against the light: a faint rim on the sun side (upper right). */
+  .silhouette .hero-scarecrow {
+    filter: drop-shadow(0.9px -0.7px 0 color-mix(in srgb, var(--c-rim) 70%, transparent));
+  }
+
+  .cape :global(path) {
+    stroke-width: 0.4;
+    stroke-linejoin: round;
+  }
+
+  /* The eyes in the team colour (--c-pupil, --c-pupilGlow). */
+  .sc-pupil {
+    fill: var(--c-pupil);
+  }
+
+  .sc-glow-core {
+    stop-color: var(--c-pupilGlow);
+  }
+
+  .sc-glow-edge {
+    stop-color: var(--c-pupil);
+  }
+
+  /* Enamel badges with a metal rim (--c-pin, day or night). */
+  .badge-enamel {
+    stroke: var(--c-pin);
+    stroke-width: 0.9;
+    stroke-linejoin: round;
+  }
+
+  .badge-shine {
+    fill: #fff;
+    opacity: 0.22;
+  }
+
+  .badge-code {
+    fill: #f7f1e3;
+    font-family: var(--sans);
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    letter-spacing: -0.02em;
+  }
+
+  /* A goal, not earned yet: faded, never as bright as an earned one. */
+  .badge.goal {
+    filter: grayscale(0.85);
+    opacity: 0.45;
+  }
+
+  a.badge {
+    outline: none; /* the rim shows focus instead */
+    text-decoration: none;
+  }
+
+  a.badge:is(:hover, :focus-visible) .badge-enamel {
+    stroke: var(--fg);
+    stroke-width: 1.3;
+  }
+
+  /* The label above a badge, shown on hover and focus (rules generated per badge above). */
+  .badge-tip {
+    position: absolute;
+    z-index: 1;
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, calc(-100% - 0.4rem));
+    transition:
+      opacity 0.12s ease,
+      visibility 0.12s;
+  }
+
+  .badge-tip .meta {
+    font-size: 0.75rem;
+  }
+</style>
+
+<script>
+  // Only the pages with the scarecrow opt into cross-document view transitions. Leaving one for
+  // any other page, the browser would capture this page and then abort the transition (the
+  // next page has not opted in), logging an error: skip it up front instead.
+  const scenePages = ['/', '/about'];
+  addEventListener('pageswap', (e) => {
+    const to = e.activation?.entry?.url;
+    if (!e.viewTransition || !to) return;
+    if (scenePages.includes(new URL(to).pathname.replace(/(.)\/$/, '$1'))) return;
+    e.viewTransition.ready.catch(() => {}); // skipping rejects it
+    e.viewTransition.skipTransition();
+  });
+</script>
+
+<script>
+  import { CAPE, notchPoint, restPoint, type Pt, type V3 } from '../lib/hero/cape';
+
+  const svg = document.querySelector<SVGSVGElement>('[data-hero-scarecrow]');
+  if (svg) hero(svg);
+
+  function hero(svg: SVGSVGElement) {
+    const capeG = svg.querySelector<SVGGElement>('[data-cape]');
+    if (!capeG) return;
+
+    // ---- Cloth: COLS x ROWS Verlet grid, top row pinned along the shoulders. The solver works
+    // in cloth units (the cape is 1.3 long) with the scarecrow's screen axes: x right, y down,
+    // z towards the viewer. Origin: the middle of the shoulder line.
+    const COLS = CAPE.cols;
+    const ROWS = CAPE.rows;
+    const N = COLS * ROWS;
+    const S = CAPE.length / 1.3; // SVG units per cloth unit
+    const OX = (CAPE.x0 + CAPE.x1) / 2;
+    const OY = CAPE.top;
+    const DT = 1 / 120; // fixed physics step (s)
+    const MAX_STEPS = 12; // per frame; beyond that, time is dropped
+    const ITERATIONS = 6; // constraint passes per step
+    const GRAVITY = 14; // units/s²
+    const DAMPING = 0.99; // share of velocity kept per step, in wind
+    const DAMPING_CALM = 0.975; // … and without wind, so the cape comes to rest sooner
+    const K_PRESSURE = 4; // wind response along the surface normal (1/s)
+    const K_DRAG = 2.2; // drag towards the wind (1/s): strong wind lifts the cape like a flag
+    const K_FLAP = 0.7; // travelling flap across the wind, ∝ wind speed (1/s)
+    const MAX_ACCEL = 90; // units/s²
+    const MAX_MOVE = 0.08; // units per step
+    const MAX_WIND = 14; // units/s
+    const SLEEP_MOVE = 4e-5; // units per step: below this with no wind, the cloth is at rest
+    const GROUND = (CAPE.ground - OY) / S;
+
+    const pos = new Float32Array(N * 3);
+    const prev = new Float32Array(N * 3);
+    const home = new Float32Array(N * 3);
+    const force = new Float32Array(N * 3);
+    const invMass = new Float32Array(N);
+    const pinned = new Uint8Array(N);
+    const phase = new Float32Array(N); // position along the cloth, for travelling waves
+    const reach = new Float32Array(N); // 0 at the shoulders … 1 at the hem
+
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const i = r * COLS + c;
+        const p = restPoint(c, r);
+        home[i * 3] = (p[0] - OX) / S;
+        home[i * 3 + 1] = (p[1] - OY) / S;
+        home[i * 3 + 2] = p[2] / S;
+        reach[i] = r / (ROWS - 1);
+        phase[i] = 6.5 * reach[i] + 1.8 * (c / (COLS - 1));
+        if (r === 0) pinned[i] = 1;
+      }
+    }
+
+    const len3 = (p: Float32Array, a: number, b: number) =>
+      Math.hypot(p[b * 3] - p[a * 3], p[b * 3 + 1] - p[a * 3 + 1], p[b * 3 + 2] - p[a * 3 + 2]);
+
+    // Distance constraints: structural, shear and a soft bend (skip-one) set.
+    const links: number[] = [];
+    const link = (a: number, b: number, k: number) => {
+      if (!(pinned[a] && pinned[b])) links.push(a, b, len3(home, a, b), k);
+    };
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const i = r * COLS + c;
+        if (c + 1 < COLS) link(i, i + 1, 1);
+        if (r + 1 < ROWS) link(i, i + COLS, 1);
+        if (c + 1 < COLS && r + 1 < ROWS) {
+          link(i, i + COLS + 1, 0.7);
+          link(i + 1, i + COLS, 0.7);
+        }
+        if (c + 2 < COLS) link(i, i + 2, 0.2);
+        if (r + 2 < ROWS) link(i, i + 2 * COLS, 0.2);
+      }
+    }
+    const con = Float32Array.from(links); // [a, b, rest, stiffness] * n
+
+    const triList: number[] = [];
+    for (let r = 0; r < ROWS - 1; r++) {
+      for (let c = 0; c < COLS - 1; c++) {
+        const i = r * COLS + c;
+        triList.push(i, i + 1, i + COLS, i + 1, i + COLS + 1, i + COLS);
+      }
+    }
+    const tri = Uint16Array.from(triList);
+
+    // Mass of a particle = its share of the cloth area, so wind pressure acts like on real cloth.
+    for (let k = 0; k < tri.length; k += 3) {
+      const a = tri[k] * 3;
+      const b = tri[k + 1] * 3;
+      const c = tri[k + 2] * 3;
+      const ux = home[b] - home[a], uy = home[b + 1] - home[a + 1], uz = home[b + 2] - home[a + 2];
+      const vx = home[c] - home[a], vy = home[c + 1] - home[a + 1], vz = home[c + 2] - home[a + 2];
+      const area = 0.5 * Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx);
+      for (const p of [a, b, c]) invMass[p / 3] += area / 3;
+    }
+    for (let i = 0; i < N; i++) invMass[i] = 1 / invMass[i]; // accumulated as mass, stored inverted
+
+    const reset = () => {
+      pos.set(home);
+      prev.set(home);
+    };
+    reset();
+
+    const wind: V3 = [0, 0, 0]; // at the cape, cloth units/s
+    let simTime = 0;
+    let lastMove = 0; // largest particle displacement in the last step
+
+    function step() {
+      simTime += DT;
+      const [wx, wy, wz] = wind;
+      const blowing = wx !== 0 || wy !== 0 || wz !== 0;
+      const inv = 1 / DT;
+      force.fill(0);
+      if (blowing) {
+        // Aerodynamic force per triangle: K · area · (n̂ · relative wind) · n̂, shared by its vertices.
+        for (let k = 0; k < tri.length; k += 3) {
+          const ia = tri[k], ib = tri[k + 1], ic = tri[k + 2];
+          const a = ia * 3, b = ib * 3, c = ic * 3;
+          const e1x = pos[b] - pos[a], e1y = pos[b + 1] - pos[a + 1], e1z = pos[b + 2] - pos[a + 2];
+          const e2x = pos[c] - pos[a], e2y = pos[c + 1] - pos[a + 1], e2z = pos[c + 2] - pos[a + 2];
+          const nx = e1y * e2z - e1z * e2y;
+          const ny = e1z * e2x - e1x * e2z;
+          const nz = e1x * e2y - e1y * e2x;
+          const nl = Math.hypot(nx, ny, nz);
+          if (nl < 1e-9) continue;
+          // A ripple running down the cloth; it scales with the wind, so without wind there is none.
+          const ripple = 1 + 0.4 * Math.sin((phase[ia] + phase[ib] + phase[ic]) / 3 * 1.6 - simTime * 9);
+          const rx = wx * ripple - (pos[a] - prev[a] + pos[b] - prev[b] + pos[c] - prev[c]) * (inv / 3);
+          const ry = wy * ripple - (pos[a + 1] - prev[a + 1] + pos[b + 1] - prev[b + 1] + pos[c + 1] - prev[c + 1]) * (inv / 3);
+          const rz = wz * ripple - (pos[a + 2] - prev[a + 2] + pos[b + 2] - prev[b + 2] + pos[c + 2] - prev[c + 2]) * (inv / 3);
+          const f = (0.5 * K_PRESSURE * (nx * rx + ny * ry + nz * rz)) / nl / 3;
+          for (const p of [a, b, c]) {
+            force[p] += f * nx;
+            force[p + 1] += f * ny;
+            force[p + 2] += f * nz;
+          }
+        }
+      }
+
+      // Verlet integration with clamped acceleration and per-step displacement.
+      const dt2 = DT * DT;
+      const damping = blowing ? DAMPING : DAMPING_CALM;
+      const wl = Math.hypot(wx, wy);
+      const px = wl > 1e-6 ? -wy / wl : 0; // in-plane direction across the wind
+      const py = wl > 1e-6 ? wx / wl : 0;
+      for (let i = 0; i < N; i++) {
+        if (pinned[i]) continue;
+        const j = i * 3;
+        let vx = (pos[j] - prev[j]) * damping;
+        let vy = (pos[j + 1] - prev[j + 1]) * damping;
+        let vz = (pos[j + 2] - prev[j + 2]) * damping;
+        // Drag towards a gusty wind, plus a wave travelling to the hem across it: a flag's flutter.
+        const gusty = 1 + 0.35 * Math.sin(phase[i] - simTime * 7);
+        const flap = K_FLAP * wl * reach[i] * Math.sin(phase[i] * 1.3 - simTime * 11);
+        let ax = force[j] * invMass[i] + K_DRAG * (wx * gusty - vx * inv) + flap * px;
+        let ay = force[j + 1] * invMass[i] + K_DRAG * (wy * gusty - vy * inv) + flap * py + GRAVITY;
+        let az = force[j + 2] * invMass[i] + K_DRAG * (wz - vz * inv);
+        const al = Math.hypot(ax, ay, az);
+        if (al > MAX_ACCEL) {
+          ax *= MAX_ACCEL / al;
+          ay *= MAX_ACCEL / al;
+          az *= MAX_ACCEL / al;
+        }
+        const vl = Math.hypot(vx, vy, vz);
+        if (vl > MAX_MOVE) {
+          vx *= MAX_MOVE / vl;
+          vy *= MAX_MOVE / vl;
+          vz *= MAX_MOVE / vl;
+        }
+        prev[j] = pos[j];
+        prev[j + 1] = pos[j + 1];
+        prev[j + 2] = pos[j + 2];
+        pos[j] += vx + ax * dt2;
+        pos[j + 1] += vy + ay * dt2;
+        pos[j + 2] += vz + az * dt2;
+      }
+
+      for (let it = 0; it < ITERATIONS; it++) {
+        for (let k = 0; k < con.length; k += 4) {
+          const ia = con[k];
+          const ib = con[k + 1];
+          const wa = pinned[ia] ? 0 : 1;
+          const wb = pinned[ib] ? 0 : 1;
+          const a = ia * 3;
+          const b = ib * 3;
+          const dx = pos[b] - pos[a], dy = pos[b + 1] - pos[a + 1], dz = pos[b + 2] - pos[a + 2];
+          const d = Math.hypot(dx, dy, dz);
+          if (d < 1e-9) continue;
+          const s = (con[k + 3] * (d - con[k + 2])) / (d * (wa + wb));
+          pos[a] += dx * s * wa;
+          pos[a + 1] += dy * s * wa;
+          pos[a + 2] += dz * s * wa;
+          pos[b] -= dx * s * wb;
+          pos[b + 1] -= dy * s * wb;
+          pos[b + 2] -= dz * s * wb;
+        }
+      }
+
+      // The cape is always drawn behind the body, so only the ground needs a collision.
+      let moved = 0;
+      for (let i = 0; i < N; i++) {
+        if (pinned[i]) continue;
+        const j = i * 3;
+        if (pos[j + 1] > GROUND) pos[j + 1] = GROUND;
+        moved = Math.max(moved, Math.abs(pos[j] - prev[j]), Math.abs(pos[j + 1] - prev[j + 1]), Math.abs(pos[j + 2] - prev[j + 2]));
+      }
+      lastMove = moved;
+
+      if (!Number.isFinite(pos[N * 3 - 1]) || !Number.isFinite(pos[N * 3 - 2])) reset();
+    }
+
+    // ---- Rendering: one SVG path per grid quad, painter-sorted by depth every frame; the hem
+    // quads get a tear notch. Shading from a fixed light at the upper left front, relative to
+    // the hanging pose, so a cape at rest shows the palette colour.
+    const Q = (COLS - 1) * (ROWS - 1);
+    const NS = 'http://www.w3.org/2000/svg';
+    capeG.querySelector('[data-cape-still]')?.remove();
+    const paths = Array.from({ length: Q }, () => {
+      const p = document.createElementNS(NS, 'path');
+      capeG.append(p);
+      return p;
+    });
+    const sx = new Float32Array(N);
+    const sy = new Float32Array(N);
+    const depth = new Float32Array(Q);
+    const order = Array.from({ length: Q }, (_, i) => i);
+    const LIGHT: V3 = (() => {
+      const l: V3 = [-0.35, -0.45, 0.82];
+      const n = Math.hypot(...l);
+      return [l[0] / n, l[1] / n, l[2] / n];
+    })();
+    const REST_LIT = 0.62 + 0.45 * LIGHT[2];
+
+    // The cape's colour, --c-cape of the scene (the one silhouette colour on the backlit figure,
+    // which is also left unshaded), read again whenever the site switches day and night.
+    const flat = svg.hasAttribute('data-silhouette');
+    const tint = (): V3 | undefined => {
+      const m = /^#([0-9a-f]{6})$/i.exec(getComputedStyle(capeG).getPropertyValue('--c-cape').trim());
+      return m ? ([0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) as V3) : undefined;
+    };
+    let cape: V3 = tint() ?? (flat ? [58, 42, 30] : [121, 31, 31]);
+
+    const P = (i: number): Pt => [sx[i], sy[i]];
+    const f2 = (n: number) => n.toFixed(2);
+
+    function render() {
+      for (let i = 0; i < N; i++) {
+        sx[i] = OX + pos[i * 3] * S;
+        sy[i] = OY + pos[i * 3 + 1] * S;
+      }
+      for (let q = 0; q < Q; q++) {
+        const r = Math.floor(q / (COLS - 1));
+        const c = q % (COLS - 1);
+        const a = (r * COLS + c) * 3;
+        depth[q] = (pos[a + 2] + pos[a + 5] + pos[a + COLS * 3 + 2] + pos[a + COLS * 3 + 5]) / 4;
+      }
+      order.sort((p, q) => depth[p] - depth[q]);
+      let k = 0;
+      for (const q of order) {
+        const r = Math.floor(q / (COLS - 1));
+        const c = q % (COLS - 1);
+        const ia = r * COLS + c; // top left
+        const ib = ia + 1; // top right
+        const ic = ia + COLS + 1; // bottom right
+        const id = ia + COLS; // bottom left
+        const A = ia * 3, B = ib * 3, C = ic * 3, D = id * 3;
+        // Normal from the diagonals; +z (towards the viewer) at rest.
+        const d1x = pos[C] - pos[A], d1y = pos[C + 1] - pos[A + 1], d1z = pos[C + 2] - pos[A + 2];
+        const d2x = pos[D] - pos[B], d2y = pos[D + 1] - pos[B + 1], d2z = pos[D + 2] - pos[B + 2];
+        let nx = d1y * d2z - d1z * d2y;
+        let ny = d1z * d2x - d1x * d2z;
+        let nz = d1x * d2y - d1y * d2x;
+        const front = nz >= 0;
+        const s = (front ? 1 : -1) / (Math.hypot(nx, ny, nz) || 1);
+        nx *= s;
+        ny *= s;
+        nz *= s;
+        const lit = Math.min(1.22, Math.max(0.6, (0.62 + 0.45 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2])) / REST_LIT));
+        const tone = flat ? 1 : front ? lit : lit * 0.72; // the lining side is darker
+        const colour = `rgb(${Math.min(255, cape[0] * tone) | 0},${Math.min(255, cape[1] * tone) | 0},${Math.min(255, cape[2] * tone) | 0})`;
+        let d = `M${f2(sx[ia])},${f2(sy[ia])}L${f2(sx[ib])},${f2(sy[ib])}L${f2(sx[ic])},${f2(sy[ic])}`;
+        if (r === ROWS - 2) {
+          const n = notchPoint(c, P(id), P(ic), P(id - 2 * COLS), P(ic - 2 * COLS));
+          d += `L${f2(n[0])},${f2(n[1])}`;
+        }
+        d += `L${f2(sx[id])},${f2(sy[id])}Z`;
+        const el = paths[k++];
+        el.setAttribute('d', d);
+        el.style.fill = colour;
+        el.style.stroke = colour;
+      }
+    }
+
+    // ---- Pointer → wind. Positions and speeds in SVG user units; the wind is the pointer's
+    // smoothed velocity and fades out soon after the pointer stops. There is no other wind.
+    const ptr = { x: -1e4, y: -1e4, vx: 0, vy: 0, t: 0 };
+    const gust: Pt = [0, 0]; // svg units/s
+    const MAX_PTR = 3000; // svg units/s
+    const RANGE = 190; // svg units, wind falloff radius around the cape
+    const GAIN = 1.4; // share of the pointer speed that reaches the cape as wind
+    const CENTRE: Pt = [OX, OY + CAPE.length * 0.55];
+
+    function toSvg(clientX: number, clientY: number): Pt | null {
+      const m = svg.getScreenCTM();
+      if (!m) return null;
+      const p = new DOMPoint(clientX, clientY).matrixTransform(m.inverse());
+      return [p.x, p.y];
+    }
+
+    function onMove(clientX: number, clientY: number, time: number, moving: boolean) {
+      const p = toSvg(clientX, clientY);
+      if (!p) return;
+      const dt = (time - ptr.t) / 1000;
+      if (moving && ptr.t && dt > 0 && dt < 0.1) {
+        const k = Math.min(1, dt / 0.03); // ~30 ms smoothing, independent of the event rate
+        const h = Math.max(dt, 1 / 240);
+        ptr.vx += ((p[0] - ptr.x) / h - ptr.vx) * k;
+        ptr.vy += ((p[1] - ptr.y) / h - ptr.vy) * k;
+        const v = Math.hypot(ptr.vx, ptr.vy);
+        if (v > MAX_PTR) {
+          ptr.vx *= MAX_PTR / v;
+          ptr.vy *= MAX_PTR / v;
+        }
+      }
+      ptr.x = p[0];
+      ptr.y = p[1];
+      ptr.t = time;
+      if (moving) wake();
+    }
+
+    function updateGust(dt: number, now: number) {
+      if (now - ptr.t > 40) {
+        const decay = Math.exp(-dt / 0.1); // the pointer has stopped: let its speed fade
+        ptr.vx *= decay;
+        ptr.vy *= decay;
+      }
+      const rising = ptr.vx * ptr.vx + ptr.vy * ptr.vy > gust[0] * gust[0] + gust[1] * gust[1];
+      const k = 1 - Math.exp(-dt / (rising ? 0.05 : 0.16));
+      gust[0] += (ptr.vx - gust[0]) * k;
+      gust[1] += (ptr.vy - gust[1]) * k;
+      if (now - ptr.t > 40 && Math.hypot(ptr.vx, ptr.vy) < 1 && Math.hypot(gust[0], gust[1]) < 1) {
+        ptr.vx = ptr.vy = 0;
+        gust[0] = gust[1] = 0;
+      }
+      const dx = ptr.x - CENTRE[0];
+      const dy = ptr.y - CENTRE[1];
+      const s = GAIN / S / (1 + (dx * dx + dy * dy) / (RANGE * RANGE));
+      let wx = gust[0] * s;
+      let wy = gust[1] * s;
+      // A little of it pushes the cape back, away from the body, so it billows and folds.
+      let wz = -0.3 * Math.hypot(wx, wy);
+      const wl = Math.hypot(wx, wy, wz);
+      if (wl > MAX_WIND) {
+        wx *= MAX_WIND / wl;
+        wy *= MAX_WIND / wl;
+        wz *= MAX_WIND / wl;
+      }
+      wind[0] = wx;
+      wind[1] = wy;
+      wind[2] = wz;
+    }
+
+    // ---- Loop: runs only while something moves, the figure is on screen and the tab is visible.
+    const motion = matchMedia('(prefers-reduced-motion: reduce)');
+    let raf = 0;
+    let last = 0;
+    let acc = 0;
+    let onScreen = true;
+    let awake = false;
+    let calm = 0; // consecutive frames with the cloth below SLEEP_MOVE and no wind
+
+    const allowed = () => !motion.matches && onScreen && document.visibilityState === 'visible';
+
+    function frame(now: number) {
+      raf = 0;
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+      updateGust(dt, now);
+      const windy = wind[0] !== 0 || wind[1] !== 0 || wind[2] !== 0;
+      if (windy) {
+        awake = true;
+        calm = 0;
+      }
+      if (awake) {
+        acc += dt;
+        let n = 0;
+        while (acc >= DT && n < MAX_STEPS) {
+          step();
+          acc -= DT;
+          n++;
+        }
+        if (n === MAX_STEPS) acc = 0;
+        render();
+        calm = !windy && lastMove < SLEEP_MOVE ? calm + 1 : 0;
+        if (calm > 30) {
+          awake = false; // at rest: stop stepping until the next gust
+          prev.set(pos);
+          acc = 0;
+        }
+      }
+      if ((awake || gust[0] !== 0 || gust[1] !== 0) && allowed()) raf = requestAnimationFrame(frame);
+    }
+
+    function wake() {
+      if (!raf && allowed()) {
+        last = performance.now();
+        raf = requestAnimationFrame(frame);
+      }
+    }
+
+    function sync() {
+      if (!allowed() && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else if (allowed() && awake) wake();
+    }
+
+    function settle() {
+      wind[0] = wind[1] = wind[2] = 0;
+      for (let i = 0; i < 480; i++) step();
+      prev.set(pos);
+      awake = false;
+    }
+
+    // Settle into the hanging pose before the first paint, then draw it once.
+    settle();
+    render();
+
+    window.addEventListener('sky', () => {
+      cape = tint() ?? cape;
+      if (!raf) render();
+    });
+
+    // ---- Eyes: the pupils turn toward the pointer, staying inside their sockets. Measured
+    // in the eyes' own (rotated) coordinates; at most one update per frame.
+    const eyesG = svg.querySelector<SVGGElement>('[data-hero-eyes]');
+    const pupils = [...svg.querySelectorAll<SVGGElement>('[data-pupil]')].map((el) => {
+      const socket = svg.querySelector<SVGEllipseElement>(`[data-eye="${el.dataset.pupil}"]`)!;
+      const r = el.querySelector<SVGCircleElement>('.sc-pupil')!.r.baseVal.value;
+      return {
+        el,
+        rest: el.getAttribute('transform'),
+        cx: socket.cx.baseVal.value,
+        cy: socket.cy.baseVal.value,
+        mx: socket.rx.baseVal.value - r - 0.6,
+        my: socket.ry.baseVal.value - r - 0.8,
+      };
+    });
+    const gaze = { x: 0, y: 0, queued: false };
+
+    function look(clientX: number, clientY: number) {
+      gaze.x = clientX;
+      gaze.y = clientY;
+      if (gaze.queued || motion.matches) return;
+      gaze.queued = true;
+      requestAnimationFrame(() => {
+        gaze.queued = false;
+        const m = eyesG?.getScreenCTM();
+        if (!m) return;
+        const p = new DOMPoint(gaze.x, gaze.y).matrixTransform(m.inverse());
+        for (const q of pupils) {
+          const dx = p.x - q.cx;
+          const dy = p.y - q.cy;
+          const d = Math.hypot(dx, dy) || 1;
+          const k = Math.min(1, d / 60); // close to the face the gaze settles toward the centre
+          q.el.setAttribute('transform', `translate(${((dx / d) * k * q.mx).toFixed(2)} ${((dy / d) * k * q.my).toFixed(2)})`);
+        }
+      });
+    }
+
+    window.addEventListener('pointermove', (e) => look(e.clientX, e.clientY), { passive: true });
+    window.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY, e.timeStamp, true), { passive: true });
+    window.addEventListener('pointerdown', (e) => onMove(e.clientX, e.clientY, e.timeStamp, false), { passive: true });
+    // While a touch scrolls the page, pointer events stop (pointercancel); touch events don't.
+    window.addEventListener(
+      'touchmove',
+      (e) => {
+        const t = e.touches[0];
+        if (t) onMove(t.clientX, t.clientY, e.timeStamp, true);
+      },
+      { passive: true },
+    );
+    new IntersectionObserver((entries) => {
+      onScreen = entries.some((e) => e.isIntersecting);
+      sync();
+    }).observe(svg);
+    document.addEventListener('visibilitychange', sync);
+    motion.addEventListener('change', () => {
+      if (motion.matches) {
+        // Snap back to the hanging pose and keep still.
+        gust[0] = gust[1] = 0;
+        ptr.vx = ptr.vy = 0;
+        settle();
+        render();
+        for (const q of pupils) q.el.setAttribute('transform', q.rest ?? '');
+      }
+      sync();
+    });
+
+    if (import.meta.env.DEV) {
+      // For headless checks only: read-only peek at the motion state.
+      (window as unknown as { __hero: unknown }).__hero = {
+        state: () => {
+          const hem = (ROWS - 1) * COLS + (COLS >> 1); // middle of the hem, in SVG units
+          return { raf: raf !== 0, onScreen, awake, wind: [...wind], gust: [...gust], lastMove, hem: [sx[hem], sy[hem]] };
+        },
+      };
+    }
+  }
+</script>

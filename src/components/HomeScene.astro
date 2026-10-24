@@ -1,0 +1,28 @@
+---
+// The homepage scene beside the writing list: a window onto the backlit field (Landscape), the
+// scarecrow standing waist-deep in it as a silhouette. Only the sun's rays, the cape and the
+// scarecrow's eyes move (the last two only with the pointer). Decorative only.
+import Landscape from './Landscape.astro';
+---
+
+<div class="scene" aria-hidden="true">
+  <Landscape />
+</div>
+
+<style>
+  /* The window is wider than its column: its edges, faded into the page, reach into the gap
+     beside the list and a little into the margin. It rests below the end of the list, the
+     scarecrow beside its lower half. */
+  .scene {
+    width: 480px;
+    margin: 0 -2.5rem -12rem -8.75rem;
+    pointer-events: none;
+  }
+
+  @media (max-width: 760px) {
+    .scene {
+      width: min(420px, 100%);
+      margin: 0 0 0 auto;
+    }
+  }
+</style>

@@ -1,0 +1,430 @@
+---
+// The scenes' landscape, a backlit field: inside a window whose edges dissolve into the page,
+// back to front, the sky, the sun (the moon at night) in its glow behind the scarecrow, pale
+// hills, a darker tree line on the horizon, the field (lighter far, richer near), the scarecrow
+// standing in it, the wheat in front of it and a few large soft stalks at the bottom edge.
+// Colours: --c-* (src/lib/hero/palette.ts), day or night like the site. The sky above, the
+// field below and the stalks' feet thin out to nothing, so only the page background (--bg)
+// shows there, and the window fades out over a long, eased falloff: no edge to see.
+//
+// On the homepage the scarecrow stands waist-deep, a silhouette against the light. With `close`
+// (/about) the same field is seen up close: a small village on the horizon, the scarecrow in
+// full colour with its badges as links, only the lower post hidden. The sun, the scarecrow and
+// the wheat in front are paired across the two pages by view-transition-name, so following the
+// About link zooms in.
+import HeroScarecrow from './HeroScarecrow.astro';
+import SkyBody from './SkyBody.astro';
+import { paletteCss } from '../lib/hero/palette';
+
+interface Props {
+  close?: boolean;
+}
+
+const { close = false } = Astro.props;
+
+// The window in its own units (CSS pixels at full size): the horizon, the sun (the sky body's
+// box, rays included), and the figure: its centre, width, and where the wheat in front of it
+// reaches (`cut`, in the figure's SVG units, at `at` in the window). `k` scales the details.
+const V = close
+  ? { w: 520, h: 600, horizon: 400, sun: { x: 440, y: 128, w: 150 }, fig: { x: 286, w: 300, cut: 200, at: 470 }, k: 1.6 }
+  : { w: 480, h: 560, horizon: 328, sun: { x: 322, y: 242, w: 80 }, fig: { x: 236, w: 150, cut: 145, at: 358 }, k: 1 };
+const { w: W, h: H, horizon: Y, k } = V;
+const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
+const figTop = V.fig.at - ((V.fig.cut - 28) * V.fig.w) / 120; // the figure's viewBox starts at y = 28, 120 wide
+
+// The window's mask: clearest where the figure meets the wheat, fading out all round (an ellipse
+// reaching the sides and the top) and, from a little below that, toward the bottom. Each fade is
+// a raised cosine, flat where it starts and where it ends, so neither end shows as a line.
+const fade = (from: number, to: number, n = 12) =>
+  Array.from({ length: n + 1 }, (_, i) => {
+    const s = i / n;
+    const a = 0.5 + 0.5 * Math.cos(Math.PI * s);
+    return `rgb(0 0 0/${a.toFixed(3)}) ${(from + (to - from) * s).toFixed(2)}%`;
+  }).join(',');
+// Up close the window starts fading nearer the middle, and the bottom right at the wheat line,
+// which sits lower there.
+const cy = (V.fig.at / H) * 100;
+const mask =
+  `radial-gradient(50% ${cy.toFixed(2)}% at 50% ${cy.toFixed(2)}%,${fade(close ? 18 : 28, 100)}),` +
+  `linear-gradient(${fade(close ? cy - 2 : cy + 4, 100)})`;
+const layout = [
+  `aspect-ratio:${W}/${H}`,
+  `--sun-x:${pct(V.sun.x, W)}`,
+  `--sun-y:${pct(V.sun.y, H)}`,
+  `--sun-w:${pct(V.sun.w, W)}`,
+  `--fig-x:${pct(V.fig.x, W)}`,
+  `--fig-y:${pct(figTop, H)}`,
+  `--fig-w:${pct(V.fig.w, W)}`,
+  `--mask:${mask}`,
+].join(';');
+
+// ---- Shapes, from a seeded random so every build draws the same field.
+let seed = close ? 11 : 7;
+const rand = () => {
+  seed = (seed * 16807) % 2147483647;
+  return (seed - 1) / 2147483646;
+};
+const f = (n: number) => n.toFixed(1);
+const circle = (cx: number, cy: number, r: number) =>
+  `M${f(cx - r)} ${f(cy)}a${f(r)} ${f(r)} 0 1 0 ${f(2 * r)} 0a${f(r)} ${f(r)} 0 1 0 ${f(-2 * r)} 0`;
+// An ellipse standing on its long axis, tilted by `deg`, as two arcs (so many share one path).
+const ellipse = (cx: number, cy: number, rx: number, ry: number, deg: number) => {
+  const a = (deg * Math.PI) / 180;
+  const dx = -Math.sin(a) * ry;
+  const dy = Math.cos(a) * ry;
+  const arc = (sx: number, sy: number) => `a${f(rx)} ${f(ry)} ${f(deg)} 1 0 ${f(sx)} ${f(sy)}`;
+  return `M${f(cx - dx)} ${f(cy - dy)}${arc(2 * dx, 2 * dy)}${arc(-2 * dx, -2 * dy)}`;
+};
+
+// A soft ridge standing on the horizon: n bumps, quadratic curves through their midpoints.
+function ridge(amp: number, n: number) {
+  const pts = Array.from({ length: n + 1 }, (_, i) => [(i / n) * W, Y - amp * (0.3 + 0.7 * rand())]);
+  let d = `M-10 ${Y + 2}L-10 ${f(pts[0][1])}L${f(pts[0][0])} ${f(pts[0][1])}`;
+  for (let i = 1; i < n; i++) {
+    d += `Q${f(pts[i][0])} ${f(pts[i][1])} ${f((pts[i][0] + pts[i + 1][0]) / 2)} ${f((pts[i][1] + pts[i + 1][1]) / 2)}`;
+  }
+  return `${d}L${f(W)} ${f(pts[n][1])}L${W + 10} ${f(pts[n][1])}L${W + 10} ${Y + 2}Z`;
+}
+
+// The tree line: a low band along the horizon, crowned with round blobs, a few taller, and
+// now and then a gap.
+function treeLine() {
+  const band = 3 * k;
+  let d = `M-10 ${Y + 1}V${f(Y - band)}H${W + 10}V${Y + 1}Z`;
+  for (let x = -6; x < W + 6; ) {
+    let r = (2 + rand() * 3) * k;
+    if (rand() < 0.1) r *= 1.6;
+    if (rand() < 0.08) {
+      x += r * 2.2;
+      continue;
+    }
+    d += circle(x, Y - band - r * 0.35 - rand() * 1.5 * k, r);
+    x += r * (0.9 + rand() * 0.6);
+  }
+  return d;
+}
+
+// Faint rows across the far field, closer together toward the horizon.
+const rows = Array.from({ length: 4 }, (_, i) => {
+  const y = Y + (V.fig.at - Y) * ((i + 1) / 4.5) ** 1.5;
+  let d = `M-10 ${f(y)}`;
+  for (let x = 0; x <= W + 20; x += 20) d += `Q${f(x - 10)} ${f(y + (rand() - 0.5) * 1.2 * k)} ${f(x)} ${f(y)}`;
+  return { d, dash: `${f((3 + i * 2) * k)} ${f((2 + i) * k)}` };
+});
+
+// The wheat in front of the figure: a band from just above the cut down, its top a row of
+// stalks with heads, which hides the cut edge.
+const bandTop = (x: number) => V.fig.at - (2 + 2.5 * (0.5 + 0.5 * Math.sin(x / (17 * k) + 1.3))) * k;
+let band = `M-10 ${H + 10}`;
+for (let x = -10; x <= W + 10; x += 6) band += `L${f(x)} ${f(bandTop(x))}`;
+band += `L${W + 10} ${H + 10}Z`;
+
+let stems = '';
+let heads = '';
+for (let x = -4 + rand() * 2; x < W + 4; x += 2.3 * k * (0.7 + rand() * 0.6)) {
+  const base = bandTop(x) + 2 * k;
+  const h = (5 + rand() * 9) * k;
+  const lean = (rand() - 0.6) * 0.3 * h;
+  stems += `M${f(x)} ${f(base)}Q${f(x)} ${f(base - h / 2)} ${f(x + lean)} ${f(base - h)}`;
+  heads += ellipse(x + lean * 1.1, base - h - 2.2 * k, 1.05 * k, 2.8 * k, (Math.atan2(lean, h) * 180) / Math.PI);
+}
+
+// Loose rows of short strokes further down the band, larger as they come closer: the field's
+// texture.
+let texture = '';
+[0.14, 0.34, 0.6].forEach((t, i) => {
+  const y = V.fig.at + (H - V.fig.at) * t;
+  const s = (1 + i * 0.6) * k;
+  for (let x = rand() * 6 * s; x < W; x += 4.5 * s * (0.5 + rand())) {
+    const len = (3 + rand() * 3) * s;
+    texture += `M${f(x)} ${f(y + (rand() - 0.5) * 5 * s)}l${f((rand() - 0.6) * len * 0.4)} ${f(-len)}`;
+  }
+});
+
+// A few large stalks at the bottom edge, out of focus, leaving the middle clear. Each ear is
+// pairs of grains along its axis, tilted out from it, with awns at the tip.
+let near = '';
+let nearStems = '';
+let awns = '';
+for (const [at, tall, lean] of [
+  [0.15, 0.27, -7],
+  [0.24, 0.2, 4],
+  [0.33, 0.14, -3],
+  [0.68, 0.16, 5],
+  [0.77, 0.25, -5],
+  [0.86, 0.19, 7],
+]) {
+  const x = at * W;
+  const top = H - tall * H;
+  const bx = x + lean * k;
+  nearStems += `M${f(x)} ${H + 10}Q${f(x)} ${f((H + top) / 2)} ${f(bx)} ${f(top)}`;
+  const a = (Math.atan2(lean * k, H - top) * 2.2 * 180) / Math.PI; // the ear bends on further
+  const r = (a * Math.PI) / 180;
+  const [ux, uy, nx, ny] = [Math.sin(r), -Math.cos(r), Math.cos(r), Math.sin(r)];
+  for (let i = 0; i < 7; i++) {
+    const side = i % 2 ? 1 : -1;
+    const d = (2 + i * 3.8) * k;
+    const off = (i === 6 ? 0 : 2) * k * side;
+    near += ellipse(bx + ux * d + nx * off, top + uy * d + ny * off, 2.2 * k, 4.6 * k, a + side * 20);
+  }
+  for (const s of [-1, 0, 1]) {
+    const d0 = 24 * k;
+    const ax = (a + s * 9) * (Math.PI / 180);
+    awns += `M${f(bx + ux * d0)} ${f(top + uy * d0)}l${f(Math.sin(ax) * 11 * k)} ${f(-Math.cos(ax) * 11 * k)}`;
+  }
+}
+
+// ---- The village (close up only), standing on the horizon in front of the tree line: a few
+// flat houses with gabled roofs, a grain silo, two round trees and one chimney with smoke.
+// Drawn at village scale from its own origin, then placed (`place`).
+const houses = [
+  { x: 30, w: 22, h: 13, roof: 9, windows: [[36, -10]] },
+  { x: 55, w: 15, h: 10, roof: 7, windows: [] },
+  { x: 98, w: 27, h: 15, roof: 10, windows: [[103, -10], [115, -10]], chimney: 117 },
+  { x: 129, w: 14, h: 9, roof: 6, windows: [[134, -7]] },
+  { x: 166, w: 18, h: 11, roof: 7, windows: [[171, -8]] },
+];
+const gable = (x: number, w: number, top: number, roof: number) =>
+  `M${x - 1.5} ${top} L${x + w / 2} ${top - roof} L${x + w + 1.5} ${top} Z`;
+const trees = [
+  { x: 18, r: 5 },
+  { x: 152, r: 6.5 },
+];
+const silo = { x: 79, w: 10, h: 26 };
+const place = `translate(46 ${Y}) scale(1.25)`;
+---
+
+<div class="landscape" style={layout}>
+  <svg class="layer" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+    <defs>
+      <linearGradient id="land-sky" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={Y}>
+        <stop offset="0.45" class="l-sky-low" stop-opacity="0"></stop>
+        <stop offset="1" class="l-sky-low"></stop>
+      </linearGradient>
+      <linearGradient id="land-haze" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" class="l-sky-low" stop-opacity="0"></stop>
+        <stop offset="0.7" class="l-sky-low" stop-opacity="0.35"></stop>
+        <stop offset="1" class="l-sky-low" stop-opacity="0"></stop>
+      </linearGradient>
+      <linearGradient id="land-field" gradientUnits="userSpaceOnUse" x1="0" y1={Y} x2="0" y2={H}>
+        <stop offset="0" class="l-field-far"></stop>
+        <stop offset="0.6" class="l-field-near"></stop>
+      </linearGradient>
+    </defs>
+    <rect width={W} height={Y + 2} fill="url(#land-sky)"></rect>
+    <path class="l-hills" d={ridge(26 * k, 3)}></path>
+    <path class="l-hills l-hills-near" d={ridge(14 * k, 5)}></path>
+    <path class="l-trees" d={treeLine()}></path>
+    {
+      close && (
+        <g transform={place}>
+          {trees.map((t) => (
+            <g class="v-roof">
+              <rect x={t.x - 0.8} y={-t.r * 1.6} width="1.6" height={t.r * 1.6} />
+              <circle cx={t.x} cy={-t.r * 1.9} r={t.r} />
+            </g>
+          ))}
+          <rect class="v-wall" x={silo.x} y={-silo.h} width={silo.w} height={silo.h} />
+          <path class="v-roof" d={`M${silo.x} ${-silo.h} A${silo.w / 2} ${silo.w / 2.4} 0 0 1 ${silo.x + silo.w} ${-silo.h} Z`} />
+          {houses.map((h) => (
+            <g>
+              {h.chimney && <rect class="v-roof" x={h.chimney} y={-h.h - h.roof} width="3" height={h.roof} />}
+              <rect class="v-wall" x={h.x} y={-h.h} width={h.w} height={h.h} />
+              <path class="v-roof" d={gable(h.x, h.w, -h.h, h.roof)} />
+              {h.windows.map(([x, y]) => <rect class="v-window" x={x} y={y} width="3" height="3" />)}
+            </g>
+          ))}
+          <path class="v-smoke" d="M118.5 -28 q-3 -4 0 -8 t0 -8 q-2 -3 1 -6" />
+        </g>
+      )
+    }
+    <rect y={Y - 22 * k} width={W} height={28 * k} fill="url(#land-haze)"></rect>
+    <rect y={Y} width={W} height={V.fig.at - Y} fill="url(#land-field)"></rect>
+    {rows.map((r) => <path class="l-row" d={r.d} stroke-dasharray={r.dash} stroke-width={0.6 * k} />)}
+  </svg>
+
+  <SkyBody />
+
+  <div class="figure">
+    <HeroScarecrow silhouette={!close} links={close} cut={V.fig.cut} />
+  </div>
+
+  <div class="layer front">
+    <svg viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+      <defs>
+        <linearGradient id="land-near" gradientUnits="userSpaceOnUse" x1="0" y1={V.fig.at} x2="0" y2={H}>
+          <stop offset="0" class="l-field-near"></stop>
+          <stop offset="0.45" class="l-wheat"></stop>
+          <stop offset="1" class="l-wheat" stop-opacity="0"></stop>
+        </linearGradient>
+        <linearGradient id="land-stalk" gradientUnits="userSpaceOnUse" x1="0" y1={H * 0.8} x2="0" y2={H}>
+          <stop offset="0" class="l-wheat-near"></stop>
+          <stop offset="1" class="l-wheat-near" stop-opacity="0"></stop>
+        </linearGradient>
+        <filter id="land-soft" x="-50%" y="-20%" width="200%" height="140%">
+          <feGaussianBlur stdDeviation={1.1 * k}></feGaussianBlur>
+        </filter>
+      </defs>
+      <path d={band} fill="url(#land-near)"></path>
+      <path class="l-texture" d={texture} stroke-width={0.9 * k}></path>
+      <path class="l-stem" d={stems} stroke-width={0.6 * k}></path>
+      <path class="l-head" d={heads}></path>
+      <g class="l-near" filter="url(#land-soft)">
+        <path class="l-near-stem" d={nearStems} stroke-width={1.8 * k}></path>
+        <path class="l-near-stem" d={awns} stroke-width={0.7 * k}></path>
+        <path d={near}></path>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<style is:inline set:html={paletteCss('.landscape')}></style>
+
+<style>
+  .landscape {
+    --v-wall: color-mix(in srgb, var(--c-trees) 60%, var(--c-hills));
+    --v-roof: color-mix(in srgb, var(--c-trees) 85%, #000);
+    --v-window: var(--v-roof);
+    --v-window-glow: 0;
+    position: relative;
+    width: 100%;
+  }
+
+  /* While the sky is dark, a few windows of the village are lit. */
+  :global(:root[data-scheme='dark']) .landscape {
+    --v-window: #e3b85a;
+    --v-window-glow: 1;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-scheme])) .landscape {
+      --v-window: #e3b85a;
+      --v-window-glow: 1;
+    }
+  }
+
+  .layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* The window (--mask, above). */
+  svg.layer,
+  .front svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    mask-image: var(--mask);
+    mask-composite: intersect;
+  }
+
+  /* The wheat in front pairs with the one on the other page, above the scarecrow. */
+  .front {
+    view-transition-name: scene-wheat;
+  }
+
+  .l-wheat-near {
+    stop-color: var(--c-wheatNear);
+  }
+
+  .l-sky-low {
+    stop-color: var(--c-skyLow);
+  }
+
+  .l-field-far {
+    stop-color: var(--c-fieldFar);
+  }
+
+  .l-field-near {
+    stop-color: var(--c-fieldNear);
+  }
+
+  .l-wheat {
+    stop-color: var(--c-wheat);
+  }
+
+  .l-hills {
+    fill: var(--c-hills);
+  }
+
+  .l-hills-near {
+    fill: color-mix(in srgb, var(--c-hills) 75%, var(--c-trees));
+  }
+
+  .l-trees {
+    fill: var(--c-trees);
+  }
+
+  .l-row {
+    fill: none;
+    stroke: var(--c-fieldNear);
+    opacity: 0.45;
+  }
+
+  .l-texture {
+    fill: none;
+    stroke: var(--c-wheat);
+    stroke-linecap: round;
+    opacity: 0.35;
+  }
+
+  .l-stem {
+    fill: none;
+    stroke: var(--c-wheat);
+    stroke-linecap: round;
+  }
+
+  .l-head {
+    fill: var(--c-wheat);
+  }
+
+  .l-near {
+    fill: url(#land-stalk);
+  }
+
+  .l-near-stem {
+    fill: none;
+    stroke: url(#land-stalk);
+    stroke-linecap: round;
+  }
+
+  .v-wall {
+    fill: var(--v-wall);
+  }
+
+  .v-roof {
+    fill: var(--v-roof);
+  }
+
+  .v-window {
+    fill: var(--v-window);
+    opacity: calc(0.35 + 0.55 * var(--v-window-glow));
+  }
+
+  .v-smoke {
+    fill: none;
+    stroke: var(--v-roof);
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    opacity: 0.7;
+  }
+
+  .landscape :global(.sky-body) {
+    position: absolute;
+    left: var(--sun-x);
+    top: var(--sun-y);
+    width: var(--sun-w);
+    translate: -50% -50%;
+  }
+
+  .figure {
+    position: absolute;
+    left: var(--fig-x);
+    top: var(--fig-y);
+    width: var(--fig-w);
+    translate: -50% 0;
+  }
+</style>
