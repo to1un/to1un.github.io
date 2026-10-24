@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="42 30.5 68 68">
+  <style>
+    .line { fill: #1c1c1a; stroke: #1c1c1a; stroke-width: 5; stroke-linejoin: round; }
+    .sack { fill: #cdc7b5; }
+    .hat { fill: #3a3a37; }
+    .ink { fill: #1c1c1a; }
+    .stitch { fill: none; stroke: #1c1c1a; stroke-width: 2.6; stroke-linecap: round; }
+    @media (prefers-color-scheme: dark) {
+      .hat-line { fill: #ece6d8; stroke: #ece6d8; }
+    }
+  </style>
+  <!-- The homepage scarecrow's head (HeroScarecrow.astro), simplified: sack, crooked hat,
+       hollow eyes, stitched mouth. An outline keeps it apart from light and dark tabs. -->
+  <g transform="rotate(-4 78 92)">
+    <ellipse class="line" cx="78" cy="75" rx="17" ry="19"/>
+    <ellipse class="sack" cx="78" cy="75" rx="17" ry="19"/>
+    <ellipse class="ink" cx="69.5" cy="72" rx="5" ry="6"/>
+    <ellipse class="ink" cx="83" cy="72.5" rx="4.2" ry="5.2"/>
+    <path class="stitch" d="M66 86 L89 84 M71 82 v7 M77.5 81.5 v7 M84 81 v7"/>
+    <g class="line hat-line">
+      <ellipse cx="76" cy="58" rx="29" ry="5.5" transform="rotate(-8 76 58)"/>
+      <path d="M63 57 L67 37 L80 34 L88 40 L90 55 Z"/>
+    </g>
+    <g class="hat">
+      <ellipse cx="76" cy="58" rx="29" ry="5.5" transform="rotate(-8 76 58)"/>
+      <path d="M63 57 L67 37 L80 34 L88 40 L90 55 Z"/>
+    </g>
+  </g>
+</svg>
