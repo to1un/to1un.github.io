@@ -247,6 +247,62 @@ main > h1 {
   margin: 0;
 }
 
+/* The scene pages (home, about) morph into each other: the scarecrow, the sun and the wheat in
+   front take a little longer than the page's crossfade, so it reads as a zoom (HeroScarecrow
+   opts the pages in). */
+
+::view-transition-group(scene-scarecrow),
+::view-transition-group(scene-sun),
+::view-transition-group(scene-wheat) {
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+/* The about page: two short paragraphs, and the contact and profiles in one small muted line
+   below, each with its icon. Beside the scene the column is ~540px, so the measure only binds
+   when the page stacks; the wrapping keeps a lone word off the last line. */
+
+.bio {
+  max-width: 62ch;
+}
+
+.bio p {
+  text-wrap: pretty;
+}
+
+.bio p:last-child {
+  margin-bottom: 0;
+}
+
+.bio a {
+  white-space: nowrap;
+}
+
+.links {
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.links li {
+  display: inline;
+}
+
+.links li + li::before {
+  content: '·' / '';
+  margin-inline: 0.5em;
+}
+
+.link-icon {
+  width: 1em;
+  height: 1em;
+  margin-right: 0.35em;
+  fill: currentColor;
+  vertical-align: -0.15em;
+}
+
 /* Post lists */
 
 .posts {

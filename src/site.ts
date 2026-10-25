@@ -1,10 +1,18 @@
 // Site identity.
+import type { IconName } from './lib/icons';
 import type { Team } from './lib/hero/palette';
 
 /** Languages content can be written in. The site chrome itself is English. */
 export type Lang = 'en' | 'tr';
 
+interface SiteLink {
+  label: string;
+  url: string;
+  icon: IconName; // from src/lib/icons.ts
+}
+
 const handle = 'to1un'; // for the domain and accounts
+const github = `https://github.com/${handle}`;
 
 /** Team colour of the scarecrow's cape and eyes: 'blue' | 'purple' | 'red'.
  *  Palettes: TEAMS in src/lib/hero/palette.ts. */
@@ -22,4 +30,15 @@ export const site = {
   handle,
   description: owner ? `Personal website of ${owner}.` : 'A personal website: writing and projects.',
   team,
+  /** Contact and profiles on the about page, in this order; profiles get rel="me". */
+  links: [
+    { label: 'Email', url: 'mailto:contact@to1un.com', icon: 'email' },
+    { label: 'GitHub', url: github, icon: 'github' },
+    { label: 'TryHackMe', url: 'https://tryhackme.com/p/to1un', icon: 'tryhackme' },
+    {
+      label: 'Hack The Box',
+      url: 'https://profile.hackthebox.com/profile/01a18368-f2ff-700a-9d3c-821502c18b26',
+      icon: 'hackthebox',
+    },
+  ] satisfies SiteLink[],
 };

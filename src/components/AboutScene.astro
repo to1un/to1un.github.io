@@ -1,0 +1,20 @@
+---
+// The about page's scene: the homepage field seen up close (Landscape `close`). The sun (the moon
+// at night), the scarecrow and the wheat in front of it are paired with the homepage's by
+// view-transition-name, so following the About link zooms in.
+import Landscape from './Landscape.astro';
+---
+
+<div class="about-scene">
+  <Landscape close />
+</div>
+
+<style>
+  /* The window's last stretch has faded out to nothing: let it reach into the space above the
+     footer instead of making the page taller. */
+  .about-scene {
+    width: 100%;
+    max-width: 520px;
+    margin-bottom: -4rem;
+  }
+</style>

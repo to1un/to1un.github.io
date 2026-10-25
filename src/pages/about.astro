@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AboutScene from '../components/AboutScene.astro';
+import { icons } from '../lib/icons';
+import { site } from '../site';
+---
+
+<BaseLayout title="About" description={site.owner ? `About ${site.owner}.` : 'About this site and its author.'}>
+  <h1 class="sr-only">About</h1>
+
+  <div class="about">
+    <div class="about-text">
+      <div class="bio">
+        <p>A short introduction will go here.</p>
+      </div>
+
+      <ul class="links" aria-label="Contact and profiles">
+        {
+          site.links.map((link) => (
+            <li>
+              <a href={link.url} rel={link.url.startsWith('mailto:') ? undefined : 'me'}>
+                <svg class="link-icon" viewBox={icons[link.icon].viewBox} aria-hidden="true" focusable="false">
+                  <path d={icons[link.icon].path} />
+                </svg>
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+    <AboutScene />
+  </div>
+</BaseLayout>
+
+<style>
+  /* Like the homepage: the text on the left, the scene beside it on the right, here up close. */
+  .about {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
+    align-items: start;
+    column-gap: clamp(1rem, 4vw, 3rem);
+  }
+
+  /* The text reaches into the scene's empty sky on the left (the scarecrow's arm starts ~150px in),
+     for longer lines, and is painted above it. */
+  .about-text {
+    position: relative;
+    z-index: 1;
+    margin-top: clamp(0.5rem, 2vw, 1.5rem);
+    margin-inline-end: -9rem;
+  }
+
+  @media (max-width: 760px) {
+    .about {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 2rem;
+    }
+
+    .about-text {
+      margin-inline-end: 0;
+    }
+  }
+</style>

@@ -10,6 +10,7 @@ const posts = (await getPosts()).sort((a, b) => Number(b.data.pinned) - Number(a
 ---
 
 <BaseLayout>
+  {/* The name is in the header; the about text and links live on /about. */}
   <h1 class="sr-only">{site.name}</h1>
 
   <div class="home">
