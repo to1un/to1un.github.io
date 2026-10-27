@@ -1,4 +1,4 @@
-import { defineCollection } from 'astro:content';
+import { defineCollection, reference } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
@@ -24,4 +24,29 @@ const writing = defineCollection({
     }),
 });
 
-export const collections = { writing };
+const projects = defineCollection({
+  loader: glob({ base: './src/content/projects', pattern: '**/*.{yaml,yml}' }),
+  schema: ({ image }) =>
+    z.union([
+      z.object({
+        name: z.string(),
+        // An image, or a coloured tile with a monogram of one or two letters.
+        logo: z.union([image(), z.object({ mono: z.string().min(1).max(2), bg: z.string() })]),
+        tagline: z.string().optional(),
+        // The project links to the post about it, else to its url (GitHub or its site); with both,
+        // the url shows as a small secondary link. Either, both or neither.
+        post: reference('writing').optional(),
+        url: z.url().optional(),
+        // Not shown; newer projects are listed first.
+        year: z.number().int(),
+        // upcoming: on its way, shown dimmed and last.
+        status: z.enum(['active', 'upcoming', 'archived']),
+        secret: z.literal(false).optional(),
+      }),
+      // Not announced yet: shown last as a shadowed pin, nothing else. The name only tells the
+      // file apart and never reaches the site.
+      z.strictObject({ name: z.string(), secret: z.literal(true) }),
+    ]),
+});
+
+export const collections = { writing, projects };

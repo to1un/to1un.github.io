@@ -1,0 +1,112 @@
+---
+// A project's logo set in an enamel-pin rim, the metal (--c-pin) of the scarecrow's badges.
+// Upcoming: dimmed, with a dashed rim. Archived: a muted rim. Unannounced: upcoming, the logo a
+// shadow with a faint question mark.
+import { Image } from 'astro:assets';
+import type { ProjectView } from '../lib/content';
+
+interface Props {
+  project: ProjectView;
+  size: number; // logo size in px, without the rim
+}
+
+const { project, size } = Astro.props;
+const { logo, status, secret } = project;
+---
+
+<span class:list={['emblem', status, { secret }]} style={`--size:${size}px`}>
+  {
+    !logo ? (
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <text x="32" y="33" font-size="30">
+          ?
+        </text>
+      </svg>
+    ) : 'src' in logo ? (
+      <Image src={logo} alt="" width={size} height={size} />
+    ) : (
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill={logo.bg} />
+        <text x="32" y="33" fill="#fff" font-size={logo.mono.length > 1 ? 25 : 30}>
+          {logo.mono}
+        </text>
+      </svg>
+    )
+  }
+</span>
+
+<style>
+  .emblem {
+    --rim: max(2px, calc(var(--size) * 0.07));
+    --metal: var(--c-pin);
+    position: relative;
+    display: block;
+    flex: none;
+    padding: var(--rim);
+    border-radius: 30%;
+    background: linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--metal) 55%, #fff),
+      var(--metal) 45%,
+      color-mix(in srgb, var(--metal) 70%, #000)
+    );
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--metal) 55%, #000),
+      0 calc(var(--size) * 0.1) calc(var(--size) * 0.18) calc(var(--size) * -0.1) rgb(0 0 0 / 0.45);
+  }
+
+  .emblem :is(img, svg) {
+    display: block;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 23%;
+  }
+
+  .emblem text {
+    font-family: var(--sans);
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+  /* The sheen at the upper left. */
+  .emblem::after {
+    content: '';
+    position: absolute;
+    top: 14%;
+    left: 12%;
+    width: 34%;
+    height: 16%;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0.22;
+    rotate: -25deg;
+  }
+
+  .archived {
+    --metal: color-mix(in srgb, var(--c-pin) 45%, #7a7a76);
+  }
+
+  /* On its way: faded like a goal badge, the rim only drawn in. */
+  .upcoming {
+    padding: 0;
+    border: var(--rim) dashed var(--c-pin);
+    background: none;
+    box-shadow: none;
+    filter: grayscale(0.85);
+    opacity: 0.5;
+  }
+
+  .upcoming::after {
+    content: none;
+  }
+
+  .secret svg {
+    background: radial-gradient(circle at 40% 35%, #3a3a38, #121211 80%);
+  }
+
+  .secret text {
+    fill: #fff;
+    fill-opacity: 0.14;
+  }
+</style>

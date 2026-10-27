@@ -1,0 +1,24 @@
+---
+// Every project, compact: a small enamel pin each, in the language of the scarecrow's badges.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectList from '../../components/ProjectList.astro';
+import { getProjects } from '../../lib/content';
+import { paletteCss } from '../../lib/hero/palette';
+
+const projects = await getProjects();
+---
+
+<BaseLayout title="Projects" description="Things I have built.">
+  <h1 class="sr-only">Projects</h1>
+  <div class="projects">
+    <ProjectList projects={projects} />
+  </div>
+</BaseLayout>
+
+<style is:inline set:html={paletteCss('.projects')}></style>
+
+<style>
+  .projects {
+    margin-top: clamp(0.5rem, 2vw, 1.5rem);
+  }
+</style>

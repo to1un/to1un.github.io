@@ -1,0 +1,152 @@
+---
+// The projects, compact enough for hundreds: tiles of pin, name and a two-line tagline, three per
+// row; an unannounced one is its pin alone. A project links to its post, else to its url; with both, the url is a small secondary icon
+// link (GitHub or website).
+import type { ProjectView } from '../lib/content';
+import { icons } from '../lib/icons';
+import ProjectPin from './ProjectPin.astro';
+
+interface Props {
+  projects: ProjectView[];
+}
+
+const { projects } = Astro.props;
+
+const items = projects.map((p) => ({
+  ...p,
+  Tag: p.href || p.url ? ('a' as const) : ('span' as const),
+  link: p.href ?? p.url,
+  source: p.href && p.url && { href: p.url, github: new URL(p.url).hostname.endsWith('github.com') },
+  state: p.status === 'active' ? undefined : p.status,
+}));
+---
+
+<ul class="list">
+  {
+    items.map((p) => (
+      <li class:list={['item', p.status]}>
+        <ProjectPin project={p} size={44} />
+        <p class="head">
+          <p.Tag class:list={['name', { 'sr-only': p.secret }]} href={p.link}>
+            {p.name}
+            {p.state && <span class="sr-only">({p.state})</span>}
+          </p.Tag>
+          {p.source && (
+            <a class="source" href={p.source.href} aria-label={p.source.github ? 'GitHub' : 'Website'} title={p.source.github ? 'GitHub' : 'Website'}>
+              {p.source.github ? (
+                <svg class="github" viewBox={icons.github.viewBox} aria-hidden="true" focusable="false">
+                  <path d={icons.github.path} />
+                </svg>
+              ) : (
+                <svg class="external" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M18 13.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5.5M15 3h6v6M10 14 21 3" />
+                </svg>
+              )}
+            </a>
+          )}
+        </p>
+        {p.tagline && (
+          <p class="tagline" title={p.tagline}>
+            {p.tagline}
+          </p>
+        )}
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.75rem 2rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 0.9rem;
+    position: relative;
+  }
+
+  .item :global(.emblem) {
+    grid-row: 1 / 3;
+    align-self: start;
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .name {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline transparent 1px;
+    text-underline-offset: 0.22em;
+    transition: text-decoration-color 0.15s ease;
+  }
+
+  a.name:is(:hover, :focus-visible) {
+    text-decoration-color: currentColor;
+  }
+
+  /* The whole tile follows the name's link. */
+  a.name::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .upcoming .name {
+    color: var(--muted);
+  }
+
+  .source {
+    position: relative;
+    display: grid;
+    flex: none;
+    color: var(--muted);
+    transition: color 0.15s ease;
+  }
+
+  .source:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  .source svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .github {
+    fill: currentColor;
+  }
+
+  .external {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .tagline {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+</style>
