@@ -1,6 +1,7 @@
 // Site identity.
 import type { IconName } from './lib/icons';
 import type { Team } from './lib/hero/palette';
+import type { Mood } from './lib/sky';
 
 /** Languages content can be written in. The site chrome itself is English. */
 export type Lang = 'en' | 'tr';
@@ -18,6 +19,9 @@ const github = `https://github.com/${handle}`;
  *  Palettes: TEAMS in src/lib/hero/palette.ts. */
 const team: Team = 'blue';
 
+/** The link preview cards (og:image) show the scene by 'night' or by 'day'. */
+const preview: Mood = 'night';
+
 /** The owner's name, shown quietly: in page titles ("Writing · Tolun", the homepage's alone), the
  *  footer, the feed and link previews, never in the header or on the page itself. Set it to
  *  undefined to take it off everywhere. */
@@ -30,6 +34,7 @@ export const site = {
   handle,
   description: owner ? `Personal website of ${owner}.` : 'A personal website: writing and projects.',
   team,
+  preview,
   /** Contact and profiles on the about page, in this order; profiles get rel="me". */
   links: [
     { label: 'Email', url: 'mailto:contact@to1un.com', icon: 'email' },

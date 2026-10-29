@@ -10,9 +10,10 @@ interface Props {
   description?: string;
   type?: 'website' | 'article';
   lang?: Lang; // language of the page content; the chrome is always English
+  card?: string; // the link preview image, under /og/ (src/pages/og); else the site's
 }
 
-const { title, description = site.description, type = 'website', lang = 'en' } = Astro.props;
+const { title, description = site.description, type = 'website', lang = 'en', card } = Astro.props;
 const locales: Record<Lang, string> = { en: 'en_US', tr: 'tr_TR' };
 // When the content is not English, mark the English chrome explicitly.
 const chromeLang = lang === 'en' ? undefined : 'en';
@@ -22,6 +23,10 @@ const homeTitle = site.owner ?? site.name;
 const pageTitle = title ? (site.owner ? `${title} · ${site.owner}` : title) : homeTitle;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const rss = new URL('rss.xml', Astro.site);
+// The preview card: the page's own (a post's title), else the site's (the name); either beside
+// the scarecrow in its field, 1200 × 630 (src/lib/og/card.ts).
+const cardUrl = new URL(card ?? '/og/site.png', Astro.site);
+const cardAlt = `${card ? (title ?? homeTitle) : homeTitle}, beside a scarecrow in a field ${site.preview === 'night' ? 'by moonlight' : 'in the sun'}`;
 const path = Astro.url.pathname;
 const nav = [
   { label: 'Writing', href: '/writing/' },
@@ -54,7 +59,12 @@ const skyScript = `(${inlineSource(runSky)})(${JSON.stringify(SKY.key)})`;
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content={locales[lang]} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={cardUrl} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={cardAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title ?? homeTitle} />
     <meta name="twitter:description" content={description} />
   </head>

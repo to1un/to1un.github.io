@@ -122,6 +122,12 @@ const night: Omit<Palette, 'cape'> = {
 
 const PALETTES = { day, night };
 
+/** One mood's palette with the team's colours, as plain values (for the link preview cards). */
+export function paletteOf(mood: Mood, team: Team = site.team) {
+  const { cape, pupil, pupilGlow } = TEAMS[team];
+  return { ...PALETTES[mood], cape: cape[mood], pupil, pupilGlow };
+}
+
 /** The palette with the team's colours as --c-* on `sel`: day by default, night under
  *  data-scheme="dark", and without JS under prefers-color-scheme: dark. */
 export function paletteCss(sel: string, team: Team = site.team) {

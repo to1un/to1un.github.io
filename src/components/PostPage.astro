@@ -25,7 +25,7 @@ const outline = headings.filter((heading) => heading.depth === 2 || heading.dept
 const hasOutline = outline.length >= 3;
 ---
 
-<BaseLayout title={title} description={description} type="article" lang={lang}>
+<BaseLayout title={title} description={description} type="article" lang={lang} card={`/og/writing/${entry.id}.png`}>
   <article class="post-layout">
     <header class="post-header">
       <h1>{title}</h1>
