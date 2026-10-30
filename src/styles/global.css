@@ -236,6 +236,18 @@ main > h1 {
   text-decoration-color: currentColor;
 }
 
+/* The narrowest phones (320–360px): closer and a size smaller, so it all stays on one line. */
+@media (max-width: 23rem) {
+  .site-header {
+    column-gap: 0.75rem;
+    font-size: 1rem;
+  }
+
+  .site-header nav {
+    gap: 1rem;
+  }
+}
+
 .site-footer {
   margin-top: var(--section);
   padding-block: 2rem 3rem;
