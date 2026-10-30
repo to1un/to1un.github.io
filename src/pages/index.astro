@@ -5,8 +5,11 @@ import PostList from '../components/PostList.astro';
 import { getPosts } from '../lib/content';
 import { site } from '../site';
 
-// Pinned posts first; the sort is stable, so each part stays newest first.
-const posts = (await getPosts()).sort((a, b) => Number(b.data.pinned) - Number(a.data.pinned));
+// Pinned posts first; the sort is stable, so each part stays newest first. Only the first few show
+// here, pinned ones included, so the page stays one screen tall; the rest are on /writing/.
+const LATEST = 6;
+const all = (await getPosts()).sort((a, b) => Number(b.data.pinned) - Number(a.data.pinned));
+const posts = all.slice(0, LATEST);
 ---
 
 <BaseLayout>
@@ -17,6 +20,7 @@ const posts = (await getPosts()).sort((a, b) => Number(b.data.pinned) - Number(a
     <section class="home-section" aria-labelledby="writing">
       <h2 id="writing" class="label">Writing</h2>
       <PostList posts={posts} />
+      {all.length > posts.length && <p class="more"><a href="/writing/">All writing →</a></p>}
     </section>
     <HomeScene />
   </div>
