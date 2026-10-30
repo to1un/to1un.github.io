@@ -1,7 +1,8 @@
 ---
 // Click-to-zoom for the cover and body images of a post: the image grows from its place
 // to fit the viewport over a backdrop in the page colour. A click anywhere, Esc or scrolling
-// closes it. Images inside links keep their link. Styles: .zoom-* in global.css.
+// closes it. Images inside links keep their link. Not on touch screens, which zoom with a pinch,
+// nor below 48em, where an image already spans the screen. Styles: .zoom-* in global.css.
 ---
 
 <script>
@@ -14,21 +15,40 @@
   hint.lang = 'en';
   document.body.append(hint);
 
-  for (const img of document.querySelectorAll<HTMLImageElement>('.post-cover, .prose img')) {
-    if (img.closest('a')) continue;
-    img.classList.add('zoomable');
-    img.addEventListener('click', () => toggle(img));
-    if (!img.alt) continue; // decorative: mouse only
-    img.tabIndex = 0;
-    img.setAttribute('role', 'button');
-    img.setAttribute('aria-describedby', hint.id);
+  const off = matchMedia('(hover: none), (pointer: coarse), (max-width: 48em)');
+  const images = [...document.querySelectorAll<HTMLImageElement>('.post-cover, .prose img')].filter((img) => !img.closest('a'));
+
+  for (const img of images) {
+    img.addEventListener('click', () => off.matches || toggle(img));
     img.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+      if (img.tabIndex === 0 && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
         toggle(img);
       }
     });
   }
+
+  function setup() {
+    for (const img of images) {
+      img.classList.toggle('zoomable', !off.matches);
+      if (!img.alt) continue; // decorative: mouse only
+      if (off.matches) {
+        img.removeAttribute('tabindex');
+        img.removeAttribute('role');
+        img.removeAttribute('aria-describedby');
+      } else {
+        img.tabIndex = 0;
+        img.setAttribute('role', 'button');
+        img.setAttribute('aria-describedby', hint.id);
+      }
+    }
+  }
+
+  setup();
+  off.addEventListener('change', () => {
+    close();
+    setup();
+  });
 
   // The widest candidate of a srcset (the cover), if any.
   function largest(img: HTMLImageElement) {
