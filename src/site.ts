@@ -17,7 +17,7 @@ const github = `https://github.com/${handle}`;
 
 /** Team colour of the scarecrow's cape and eyes: 'blue' | 'purple' | 'red'.
  *  Palettes: TEAMS in src/lib/hero/palette.ts. */
-const team: Team = 'blue';
+const team: Team = 'red';
 
 /** The link preview cards (og:image) show the scene by 'night' or by 'day'. */
 const preview: Mood = 'night';
