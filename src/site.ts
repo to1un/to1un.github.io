@@ -22,10 +22,11 @@ const team: Team = 'blue';
 /** The link preview cards (og:image) show the scene by 'night' or by 'day'. */
 const preview: Mood = 'night';
 
-/** The owner's name, shown quietly: in page titles ("Writing · Tolun", the homepage's alone), the
- *  footer, the feed and link previews, never in the header or on the page itself. Set it to
- *  undefined to take it off everywhere. */
-const owner: string | undefined = 'Tolun';
+/** The owner's name, shown quietly: in page titles ("Writing · to1un", the homepage's alone), the
+ *  footer, the feed and link previews, never in the header or on the page itself. For now it holds
+ *  the handle, all lowercase; it can become the real name later. Set it to undefined to take it
+ *  off everywhere. */
+const owner: string | undefined = handle;
 
 export const site = {
   /** The header link home. */
