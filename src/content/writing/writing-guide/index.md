@@ -98,6 +98,20 @@ A horizontal rule is three hyphens on their own line, with a blank line above:
 
 Indent a nested item to line up with the text of its parent: two spaces under `-`, three under `1.`.
 
+A task list puts `[ ]` or `[x]` after the dash:
+
+```md
+- [x] Take a snapshot
+- [ ] Run the sample
+  - [ ] Watch the traffic
+```
+
+- [x] Take a snapshot
+- [ ] Run the sample
+  - [ ] Watch the traffic
+
+The boxes are only for show. Readers can't tick them.
+
 ## Block quotes
 
 ```md
@@ -172,6 +186,20 @@ and an [outside page](https://docs.astro.build/). A bare URL works too: https://
 
 Internal links start with `/` and end with `/`, like `/writing/<slug>/`. A file to download goes in `public/` and is linked from the root: `public/assets/attachment/lab.zip` is `/assets/attachment/lab.zip`. Outside links open in the same tab.
 
+## Footnotes
+
+```md
+The lab runs on Splunk Free.[^1]
+
+[^1]: It indexes up to 500 MB a day.
+```
+
+The lab runs on Splunk Free.[^1]
+
+[^1]: It indexes up to 500 MB a day.
+
+The note's line can go anywhere in the post. The notes gather at the very end, like the one at the bottom of this page, numbered in the order they're referenced, each with a ↩ back to its place. A name works as well as a number: `[^vm]`.
+
 ## Code
 
 Inline code is wrapped in backticks: `nmap -sV 10.10.10.5`.
@@ -223,6 +251,26 @@ Put the image next to `index.md` and link it with `./`. The alt text describes i
 ![A terminal running npm run dev](./terminal.png)
 
 Astro resizes it and turns it into WebP at build time. On a computer, a click opens a larger view, and a click, Esc or a scroll closes it. Phones and touch screens skip that and zoom with a pinch. An image inside a link keeps its link and doesn't zoom. An empty alt (`![](./x.png)`) marks it as decorative.
+
+For a caption, put the image in a figure with the caption under it:
+
+```md
+<figure>
+
+![A terminal running npm run dev](./terminal.png)
+
+<figcaption>The dev server, ready.</figcaption>
+</figure>
+```
+
+<figure>
+
+![A terminal running npm run dev](./terminal.png)
+
+<figcaption>The dev server, ready.</figcaption>
+</figure>
+
+Without the blank lines around it, the image isn't processed and shows as typed. The caption is plain text: Markdown doesn't work in it, but `<em>` and `<code>` tags do.
 
 A diagram drawn light on a dark background gets `.dark` before the extension. On the day theme it's inverted, so it still reads:
 
@@ -279,9 +327,6 @@ They call it <span lang="tr">korkuluk</span>.
 
 These don't render properly today. Each would take a small change first.
 
-- **Task lists** (`- [ ]`): the box shows next to a bullet, unstyled. Needs a CSS rule for `.task-list-item`.
-- **Footnotes** (`[^1]`): the notes run on under the last paragraph with no separator, and a hidden "Footnotes" heading lands in the outline. Needs CSS for `.footnotes` and a filter in `PostPage.astro`.
-- **Image captions**: a `<figcaption>` under an image comes out indented and unstyled. Needs CSS for `.prose figure`.
 - **Raw `<img>` tags**: a relative `src` isn't processed and the image breaks. Use `![]()`.
 - **Definition lists** (`Term` then `: definition`): stay plain text. Needs the Markdown processor's `definitionList` option and CSS.
 - **Math** (`$...$`): shown as typed. Needs the `math` option plus KaTeX or MathJax.
