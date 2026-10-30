@@ -13,10 +13,10 @@ export interface ProjectView {
   name: string;
   tagline?: string;
   status: 'active' | 'upcoming' | 'archived';
-  secret?: true; // not announced: the name is a stand-in for screen readers, the pin a silhouette
+  secret?: true; // not announced: the name is a stand-in for screen readers, the mark a silhouette
   href?: string; // the post about it
   url?: string; // GitHub or its site
-  logo?: ImageMetadata | { bg: string; mono: string }; // an image, or a coloured tile with a monogram
+  logo?: { bg: string; mono: string } | { bg: string; icon: ImageMetadata }; // a tile with letters, or with an icon
 }
 
 /** Projects newest first, the upcoming ones last and the unannounced ones after them. */

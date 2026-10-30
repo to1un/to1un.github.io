@@ -30,8 +30,12 @@ const projects = defineCollection({
     z.union([
       z.object({
         name: z.string(),
-        // An image, or a coloured tile with a monogram of one or two letters.
-        logo: z.union([image(), z.object({ mono: z.string().min(1).max(2), bg: z.string() })]),
+        // The mark (src/lib/mark.ts): a tile in the colour `bg` with one or two letters, or with the
+        // project's own icon (an SVG next to the file, drawn for the 48px tile).
+        logo: z.union([
+          z.strictObject({ mono: z.string().regex(/^\p{L}{1,2}$/u, 'mono is one or two letters'), bg: z.string() }),
+          z.strictObject({ icon: image(), bg: z.string() }),
+        ]),
         tagline: z.string().optional(),
         // The project links to the post about it, else to its url (GitHub or its site); with both,
         // the url shows as a small secondary link. Either, both or neither.
@@ -43,7 +47,7 @@ const projects = defineCollection({
         status: z.enum(['active', 'upcoming', 'archived']),
         secret: z.literal(false).optional(),
       }),
-      // Not announced yet: shown last as a shadowed pin, nothing else. The name only tells the
+      // Not announced yet: shown last as a shadowed mark, nothing else. The name only tells the
       // file apart and never reaches the site.
       z.strictObject({ name: z.string(), secret: z.literal(true) }),
     ]),

@@ -1,0 +1,83 @@
+---
+// A project's mark (src/lib/mark.ts): a flat tile in its colour with its letters in white, or its
+// own icon on the same tile. Upcoming: dimmed, inside a dashed rim (--c-pin, the metal of the
+// scarecrow's badges). Unannounced: upcoming, the tile a shadow with a faint question mark.
+import type { ProjectView } from '../lib/content';
+import { markLetters, tile } from '../lib/mark';
+
+interface Props {
+  project: ProjectView;
+  size: number; // in px
+}
+
+const { project, size } = Astro.props;
+const { logo, status, secret } = project;
+const letters = !logo ? markLetters('?', size) : 'mono' in logo ? markLetters(logo.mono, size) : undefined;
+---
+
+<svg
+  class:list={['mark', status, { secret }]}
+  viewBox="0 0 48 48"
+  width={size}
+  height={size}
+  aria-hidden="true"
+  focusable="false"
+>
+  {status === 'upcoming' && <path class="rim" d={tile(1.5)} pathLength="100" />}
+  <g class="face">
+    <path class="tile" d={tile()} fill={logo?.bg} />
+    {letters && <path class="letters" d={letters} />}
+    {logo && 'icon' in logo && <image href={logo.icon.src} width="48" height="48" />}
+  </g>
+</svg>
+
+<style>
+  .mark {
+    display: block;
+    flex: none;
+  }
+
+  .letters {
+    fill: #fbf6ea; /* warm off-white, as in the approved preview */
+  }
+
+  /* On its way: faded like a goal badge, a dashed rim around the tile. */
+  .upcoming {
+    filter: grayscale(0.85);
+    opacity: 0.5;
+  }
+
+  .upcoming .face {
+    transform: scale(0.875);
+    transform-origin: 24px 24px;
+  }
+
+  .rim {
+    fill: none;
+    stroke: var(--c-pin);
+    stroke-width: 3;
+    stroke-dasharray: 2.5 1.5;
+  }
+
+  .secret {
+    --shadow: #262624;
+  }
+
+  :root[data-scheme='dark'] .secret {
+    --shadow: color-mix(in oklab, var(--fg) 16%, var(--bg));
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-scheme]) .secret {
+      --shadow: color-mix(in oklab, var(--fg) 16%, var(--bg));
+    }
+  }
+
+  .secret .tile {
+    fill: var(--shadow);
+  }
+
+  .secret .letters {
+    fill-opacity: 0.3;
+  }
+</style>

@@ -1,10 +1,10 @@
 ---
-// The projects, compact enough for hundreds: tiles of pin, name and a two-line tagline, three per
-// row (two on narrower screens, a list of one on phones); an unannounced one is its pin alone. A project links to its post, else to its url; with both, the url is a small secondary icon
+// The projects, compact enough for hundreds: tiles of mark, name and a two-line tagline, three per
+// row (two on narrower screens, a list of one on phones); an unannounced one is its mark alone. A project links to its post, else to its url; with both, the url is a small secondary icon
 // link (GitHub or website).
 import type { ProjectView } from '../lib/content';
 import { icons } from '../lib/icons';
-import ProjectPin from './ProjectPin.astro';
+import ProjectMark from './ProjectMark.astro';
 
 interface Props {
   projects: ProjectView[];
@@ -25,7 +25,7 @@ const items = projects.map((p) => ({
   {
     items.map((p) => (
       <li class:list={['item', p.status]}>
-        <ProjectPin project={p} size={44} />
+        <ProjectMark project={p} size={48} />
         <p class="head">
           <p.Tag class:list={['name', { 'sr-only': p.secret }]} href={p.link}>
             {p.name}
@@ -86,7 +86,7 @@ const items = projects.map((p) => ({
     position: relative;
   }
 
-  .item :global(.emblem) {
+  .item :global(.mark) {
     grid-row: 1 / 3;
     align-self: start;
   }
