@@ -19,10 +19,11 @@ import Landscape from './Landscape.astro';
     pointer-events: none;
   }
 
+  /* On phones the homepage is the writing list alone; HeroScarecrow starts its scripts only
+     once the scene is shown. */
   @media (max-width: 760px) {
     .scene {
-      width: min(420px, 100%);
-      margin: 0 0 0 auto;
+      display: none;
     }
   }
 </style>

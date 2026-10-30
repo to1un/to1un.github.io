@@ -367,7 +367,16 @@ const tipRules = badges
   import { CAPE, notchPoint, restPoint, type Pt, type V3 } from '../lib/hero/cape';
 
   const svg = document.querySelector<SVGSVGElement>('[data-hero-scarecrow]');
-  if (svg) hero(svg);
+  if (svg?.getClientRects().length) hero(svg);
+  else if (svg) {
+    // Hidden (the homepage's scene on phones): start once it is shown, if ever.
+    const shown = new ResizeObserver(() => {
+      if (!svg.getClientRects().length) return;
+      shown.disconnect();
+      hero(svg);
+    });
+    shown.observe(svg);
+  }
 
   function hero(svg: SVGSVGElement) {
     const capeG = svg.querySelector<SVGGElement>('[data-cape]');
