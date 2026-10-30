@@ -1,6 +1,6 @@
 ---
 // The projects, compact enough for hundreds: tiles of pin, name and a two-line tagline, three per
-// row; an unannounced one is its pin alone. A project links to its post, else to its url; with both, the url is a small secondary icon
+// row (two on narrower screens, a list of one on phones); an unannounced one is its pin alone. A project links to its post, else to its url; with both, the url is a small secondary icon
 // link (GitHub or website).
 import type { ProjectView } from '../lib/content';
 import { icons } from '../lib/icons';
@@ -65,6 +65,19 @@ const items = projects.map((p) => ({
     list-style: none;
   }
 
+  @media (max-width: 44rem) {
+    .list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .list {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 1.5rem;
+    }
+  }
+
   .item {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -125,6 +138,14 @@ const items = projects.map((p) => ({
   .source svg {
     width: 15px;
     height: 15px;
+  }
+
+  /* For a finger, a larger target around the small icon, without moving it. */
+  @media (pointer: coarse) {
+    .source {
+      margin: -0.6rem;
+      padding: 0.6rem;
+    }
   }
 
   .github {
