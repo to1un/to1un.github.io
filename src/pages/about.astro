@@ -45,6 +45,7 @@ import { site } from '../site';
   /* The text reaches into the scene's empty sky on the left (the scarecrow's arm starts ~150px in),
      for longer lines, and is painted above it. */
   .about-text {
+    container: about-text / inline-size; /* the links follow its width (global.css) */
     position: relative;
     z-index: 1;
     margin-top: clamp(0.5rem, 2vw, 1.5rem);

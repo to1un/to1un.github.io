@@ -260,7 +260,8 @@ main > h1 {
 
 /* The about page: two short paragraphs, and the contact and profiles in one small muted line
    below, each with its icon. Beside the scene the column is ~540px, so the measure only binds
-   when the page stacks; the wrapping keeps a lone word off the last line. */
+   when the page stacks; the wrapping keeps a lone word off the last line. In a column too narrow
+   for the line (a phone, a tablet), the links are a grid of two instead. */
 
 .bio {
   max-width: 62ch;
@@ -301,6 +302,26 @@ main > h1 {
   margin-right: 0.35em;
   fill: currentColor;
   vertical-align: -0.15em;
+}
+
+@container about-text (width < 30rem) {
+  .links {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    column-gap: 2.5rem;
+    margin-top: 1rem;
+  }
+
+  .links li + li::before {
+    content: none;
+  }
+
+  /* Rows tall enough to tap. */
+  .links a {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
 }
 
 /* Post lists */
