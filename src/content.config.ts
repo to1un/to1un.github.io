@@ -30,23 +30,28 @@ const projects = defineCollection({
     z.union([
       z.object({
         name: z.string(),
-        // The mark (src/lib/mark.ts): a tile in the colour `bg` with one or two letters, or with the
-        // project's own icon (an SVG next to the file, drawn for the 48px tile).
+        // The mark (src/lib/mark.ts): a tile in the colour `bg` with one or two letters (the standard,
+        // and a placeholder until the project has a real icon), or with the project's own icon (an SVG
+        // next to the file, drawn for the 48px tile).
         logo: z.union([
           z.strictObject({ mono: z.string().regex(/^\p{L}{1,2}$/u, 'mono is one or two letters'), bg: z.string() }),
           z.strictObject({ icon: image(), bg: z.string() }),
         ]),
         tagline: z.string().optional(),
-        // The project links to the post about it, else to its url (GitHub or its site); with both,
-        // the url shows as a small secondary link. Either, both or neither.
+        // Its name links to the post about it, else to its website, else to its repo. The website and
+        // the repo also show as small icons beside the name: the site by its own favicon (a local
+        // copy next to the file, SVG or PNG; never hotlinked), else an arrow, the repo by the GitHub
+        // mark. Any of them, or none.
         post: reference('writing').optional(),
         url: z.url().optional(),
+        favicon: image().optional(),
+        repo: z.url({ hostname: /^github\.com$/, error: 'repo is a github.com URL' }).optional(),
         // Not shown; newer projects are listed first.
         year: z.number().int(),
         // upcoming: on its way, shown dimmed and last.
         status: z.enum(['active', 'upcoming', 'archived']),
         secret: z.literal(false).optional(),
-      }),
+      }).refine((p) => !p.favicon || p.url, { message: 'a favicon needs the url of its site', path: ['favicon'] }),
       // Not announced yet: shown last as a shadowed mark, nothing else. The name only tells the
       // file apart and never reaches the site.
       z.strictObject({ name: z.string(), secret: z.literal(true) }),

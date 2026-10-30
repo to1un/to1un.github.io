@@ -1,7 +1,8 @@
 ---
 // The projects, compact enough for hundreds: tiles of mark, name and a two-line tagline, three per
-// row (two on narrower screens, a list of one on phones); an unannounced one is its mark alone. A project links to its post, else to its url; with both, the url is a small secondary icon
-// link (GitHub or website).
+// row (two on narrower screens, a list of one on phones); an unannounced one is its mark alone. A
+// project's name links to its post, else to its website, else to its repo; beside it, small icon
+// links to the website (its own favicon, else an arrow) and the GitHub repo.
 import type { ProjectView } from '../lib/content';
 import { icons } from '../lib/icons';
 import ProjectMark from './ProjectMark.astro';
@@ -14,9 +15,8 @@ const { projects } = Astro.props;
 
 const items = projects.map((p) => ({
   ...p,
-  Tag: p.href || p.url ? ('a' as const) : ('span' as const),
-  link: p.href ?? p.url,
-  source: p.href && p.url && { href: p.url, github: new URL(p.url).hostname.endsWith('github.com') },
+  Tag: p.href || p.url || p.repo ? ('a' as const) : ('span' as const),
+  link: p.href ?? p.url ?? p.repo,
   state: p.status === 'active' ? undefined : p.status,
 }));
 ---
@@ -31,18 +31,27 @@ const items = projects.map((p) => ({
             {p.name}
             {p.state && <span class="sr-only">({p.state})</span>}
           </p.Tag>
-          {p.source && (
-            <a class="source" href={p.source.href} aria-label={p.source.github ? 'GitHub' : 'Website'} title={p.source.github ? 'GitHub' : 'Website'}>
-              {p.source.github ? (
-                <svg class="github" viewBox={icons.github.viewBox} aria-hidden="true" focusable="false">
-                  <path d={icons.github.path} />
-                </svg>
-              ) : (
-                <svg class="external" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M18 13.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5.5M15 3h6v6M10 14 21 3" />
-                </svg>
+          {(p.url || p.repo) && (
+            <span class="sources">
+              {p.url && (
+                <a class="source" href={p.url} aria-label="Website" title="Website">
+                  {p.favicon ? (
+                    <img class="favicon" src={p.favicon.src} alt="" width="16" height="16" />
+                  ) : (
+                    <svg class="external" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M18 13.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5.5M15 3h6v6M10 14 21 3" />
+                    </svg>
+                  )}
+                </a>
               )}
-            </a>
+              {p.repo && (
+                <a class="source" href={p.repo} aria-label="GitHub" title="GitHub">
+                  <svg class="github" viewBox={icons.github.viewBox} aria-hidden="true" focusable="false">
+                    <path d={icons.github.path} />
+                  </svg>
+                </a>
+              )}
+            </span>
           )}
         </p>
         {p.tagline && (
@@ -123,9 +132,17 @@ const items = projects.map((p) => ({
     color: var(--muted);
   }
 
+  .sources {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
   .source {
     position: relative;
     display: grid;
+    place-items: center;
     flex: none;
     color: var(--muted);
     transition: color 0.15s ease;
@@ -140,8 +157,32 @@ const items = projects.map((p) => ({
     height: 15px;
   }
 
-  /* For a finger, a larger target around the small icon, without moving it. */
+  /* An SVG favicon picks its colours by the scheme of the page around it (color-scheme, which
+     follows the site's toggle). Pafta's compass is a disc in the page's own colour, which at this
+     size fades into the page; in the other scheme it reads as a solid coin, as the GitHub mark
+     beside it. */
+  .favicon {
+    display: block;
+    color-scheme: dark;
+  }
+
+  :global(:root[data-scheme='dark']) .favicon {
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-scheme])) .favicon {
+      color-scheme: light;
+    }
+  }
+
+  /* For a finger, a larger target around the small icon, without moving it; the icons part enough
+     for the targets not to overlap. */
   @media (pointer: coarse) {
+    .sources {
+      gap: 1.2rem;
+    }
+
     .source {
       margin: -0.6rem;
       padding: 0.6rem;

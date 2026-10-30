@@ -15,7 +15,9 @@ export interface ProjectView {
   status: 'active' | 'upcoming' | 'archived';
   secret?: true; // not announced: the name is a stand-in for screen readers, the mark a silhouette
   href?: string; // the post about it
-  url?: string; // GitHub or its site
+  url?: string; // its website
+  favicon?: ImageMetadata; // the website's own icon
+  repo?: string; // GitHub
   logo?: { bg: string; mono: string } | { bg: string; icon: ImageMetadata }; // a tile with letters, or with an icon
 }
 
@@ -33,6 +35,8 @@ export async function getProjects(): Promise<ProjectView[]> {
             status: data.status,
             href: data.post && `/writing/${data.post.id}/`,
             url: data.url,
+            favicon: data.favicon,
+            repo: data.repo,
             logo: data.logo,
           },
     )
