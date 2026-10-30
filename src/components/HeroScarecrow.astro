@@ -2,9 +2,10 @@
 // The scenes' figure: a flat scarecrow (the approved sketch, refined) facing left, standing in
 // the field of the scene (Landscape), with the certifications (src/data/certs.ts) pinned on its
 // shirt as enamel badges. Everything is static SVG except the cape, a Verlet cloth moved only by
-// wind from the pointer, and the pupils, which follow the pointer. Colours: the --c-* of the
-// scene around it (Landscape, day or night), the cape and eyes in the owner's team colour. One per page: its
-// view-transition-name pairs the homepage figure with the big one on /about.
+// wind from the pointer, and the pupils, which follow the pointer (both still on touch screens and
+// under reduced motion). Colours: the --c-* of the scene around it (Landscape, day or night), the
+// cape and eyes in the owner's team colour. One per page: its view-transition-name pairs the
+// homepage figure with the big one on /about.
 //
 // With `silhouette` (the homepage), every part takes the one backlit colour, with a faint rim
 // of light on the sun side and glowing eyes, and there are no badges. Goal badges (certs not
@@ -685,6 +686,7 @@ const tipRules = badges
     }
 
     function onMove(clientX: number, clientY: number, time: number, moving: boolean) {
+      if (still()) return;
       const p = toSvg(clientX, clientY);
       if (!p) return;
       const dt = (time - ptr.t) / 1000;
@@ -738,7 +740,11 @@ const tipRules = badges
     }
 
     // ---- Loop: runs only while something moves, the figure is on screen and the tab is visible.
+    // Under reduced motion, and without a hovering pointer (phones, tablets: no pointer to make
+    // wind or to look at), the figure stands still: the cape at rest, the eyes in their pose.
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
+    const touch = matchMedia('(hover: none), (pointer: coarse)');
+    const still = () => motion.matches || touch.matches;
     let raf = 0;
     let last = 0;
     let acc = 0;
@@ -746,7 +752,7 @@ const tipRules = badges
     let awake = false;
     let calm = 0; // consecutive frames with the cloth below SLEEP_MOVE and no wind
 
-    const allowed = () => !motion.matches && onScreen && document.visibilityState === 'visible';
+    const allowed = () => !still() && onScreen && document.visibilityState === 'visible';
 
     function frame(now: number) {
       raf = 0;
@@ -828,7 +834,7 @@ const tipRules = badges
     function look(clientX: number, clientY: number) {
       gaze.x = clientX;
       gaze.y = clientY;
-      if (gaze.queued || motion.matches) return;
+      if (gaze.queued || still()) return;
       gaze.queued = true;
       requestAnimationFrame(() => {
         gaze.queued = false;
@@ -862,8 +868,8 @@ const tipRules = badges
       sync();
     }).observe(svg);
     document.addEventListener('visibilitychange', sync);
-    motion.addEventListener('change', () => {
-      if (motion.matches) {
+    const change = () => {
+      if (still()) {
         // Snap back to the hanging pose and keep still.
         gust[0] = gust[1] = 0;
         ptr.vx = ptr.vy = 0;
@@ -872,7 +878,9 @@ const tipRules = badges
         for (const q of pupils) q.el.setAttribute('transform', q.rest ?? '');
       }
       sync();
-    });
+    };
+    motion.addEventListener('change', change);
+    touch.addEventListener('change', change);
 
     if (import.meta.env.DEV) {
       // For headless checks only: read-only peek at the motion state.
