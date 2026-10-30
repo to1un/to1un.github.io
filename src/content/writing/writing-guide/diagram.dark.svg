@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 160" width="640" height="160" font-family="system-ui, sans-serif" font-size="15" fill="none">
+  <g stroke="#e8e6e1" stroke-width="1.5">
+    <rect x="12" y="50" width="150" height="60" rx="8"/>
+    <rect x="245" y="50" width="150" height="60" rx="8"/>
+    <rect x="478" y="50" width="150" height="60" rx="8"/>
+    <path d="M166 80h70M399 80h70"/>
+  </g>
+  <g fill="#e8e6e1">
+    <path d="M236 75l9 5-9 5zM469 75l9 5-9 5z"/>
+    <text x="87" y="85" text-anchor="middle">index.md</text>
+    <text x="320" y="85" text-anchor="middle">astro build</text>
+    <text x="553" y="85" text-anchor="middle">/writing/slug/</text>
+  </g>
+  <text x="320" y="140" text-anchor="middle" fill="#f0a35e" font-size="13">drawn light on a dark background</text>
+</svg>
