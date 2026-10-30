@@ -20,8 +20,9 @@ const { title, description, date, updated, tags, lang, cover, coverAlt } = entry
 // The body follows `lang`; English chrome inside the page is marked explicitly.
 const chromeLang = lang === 'en' ? undefined : 'en';
 const { Content, headings } = await render(entry);
-// An outline only pays off on longer entries: at least three h2/h3 headings.
-const outline = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+// An outline only pays off on longer entries: at least three h2/h3 headings. The footnotes'
+// visually hidden "Footnotes" h2 (#footnote-label) stays out of it.
+const outline = headings.filter((heading) => (heading.depth === 2 || heading.depth === 3) && heading.slug !== 'footnote-label');
 const hasOutline = outline.length >= 3;
 ---
 

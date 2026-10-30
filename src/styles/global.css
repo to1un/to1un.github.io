@@ -675,6 +675,29 @@ main > h1 {
   margin-top: 0.35rem;
 }
 
+/* Task lists (`- [x]`): the disabled checkbox stands where the bullet would, on the baseline. A
+   quiet box in the muted ink; checked, it fills and the tick is cut out of it. */
+
+.prose .task-list-item {
+  list-style: none;
+}
+
+.prose .task-list-item > input {
+  appearance: none;
+  width: 0.85em;
+  height: 0.85em;
+  margin: 0 0.3em 0 -1.4em; /* with the space after it, the text lines up with a bullet's */
+  vertical-align: -0.08em;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+}
+
+.prose .task-list-item > input:checked {
+  border-color: transparent;
+  background: var(--muted);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M3 0h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H3a3 3 0 0 1-3-3V3a3 3 0 0 1 3-3Zm.6 8.4 1.5-1.5 2 2 4.3-4.3 1.5 1.5-5.8 5.8Z'/%3E%3C/svg%3E") center / 100% 100%;
+}
+
 .prose img {
   display: block;
   margin: 2rem auto;
@@ -834,6 +857,32 @@ main > h1 {
   margin: 1rem auto;
 }
 
+/* An image with a caption: a Markdown image inside <figure>, then <figcaption>. */
+
+.prose figure {
+  margin: 2rem 0;
+}
+
+.prose figure img {
+  margin: 0 auto;
+}
+
+.prose figure > p {
+  margin: 0;
+}
+
+.prose figure:not(.code-file) figcaption {
+  margin-top: 0.6rem;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--muted);
+}
+
+.prose figcaption > p {
+  margin: 0;
+}
+
 /* Code block with a file name caption. */
 
 .prose .code-file {
@@ -849,6 +898,55 @@ main > h1 {
 
 .prose .code-file pre {
   margin: 0;
+}
+
+/* Footnotes (`[^1]`): small superscript numbers in the text; the notes after a thin rule at the
+   end, small and muted, each with a link back up. Their "Footnotes" heading is for screen readers
+   (.sr-only) and stays out of the outline (PostPage.astro). */
+
+.prose sup:has(> [data-footnote-ref]) {
+  line-height: 0;
+}
+
+.prose [data-footnote-ref] {
+  padding-inline: 0.1em;
+  font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.prose :is([data-footnote-ref], .footnotes li) {
+  scroll-margin-top: 1.5rem;
+}
+
+.prose .footnotes {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.83rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.prose .footnotes ol {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.prose .footnotes li + li {
+  margin-top: 0.25rem;
+}
+
+.prose .footnotes p {
+  margin: 0;
+}
+
+.prose [data-footnote-backref] {
+  text-decoration: none;
+}
+
+.prose :is([data-footnote-ref], [data-footnote-backref]):hover {
+  text-decoration: underline;
 }
 
 code {
