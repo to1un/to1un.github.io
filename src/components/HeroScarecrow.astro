@@ -234,8 +234,9 @@ const tipRules = badges
 {links && <style is:inline set:html={tipRules}></style>}
 
 <style>
-  /* Pages with the scarecrow (the homepage and /about) morph into each other when navigating
-     between them: the figure and the sun grow or shrink in place (view-transition-name). */
+  /* The homepage and /about morph into each other when navigating between them: the figure and
+     the sun grow or shrink in place (view-transition-name). Every page with the scarecrow opts
+     in; the script below skips the transition for any other pair (the 404 page's included). */
   @media (prefers-reduced-motion: no-preference) {
     @view-transition {
       navigation: auto;
@@ -353,12 +354,14 @@ const tipRules = badges
 <script>
   // Only the pages with the scarecrow opt into cross-document view transitions. Leaving one for
   // any other page, the browser would capture this page and then abort the transition (the
-  // next page has not opted in), logging an error: skip it up front instead.
+  // next page has not opted in), logging an error: skip it up front instead. The 404 page has
+  // the scarecrow too but morphs into neither: leaving it, skip as well.
   const scenePages = ['/', '/about'];
+  const isScene = (url: string) => scenePages.includes(new URL(url).pathname.replace(/(.)\/$/, '$1'));
   addEventListener('pageswap', (e) => {
     const to = e.activation?.entry?.url;
     if (!e.viewTransition || !to) return;
-    if (scenePages.includes(new URL(to).pathname.replace(/(.)\/$/, '$1'))) return;
+    if (isScene(location.href) && isScene(to)) return;
     e.viewTransition.ready.catch(() => {}); // skipping rejects it
     e.viewTransition.skipTransition();
   });
