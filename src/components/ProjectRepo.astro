@@ -1,0 +1,68 @@
+---
+// A project's one link, its repository, as a small icon: the GitHub mark for github.com, else a
+// neutral pair of code brackets, labelled with the host (Codeberg, GitLab, a forge of its own).
+import { icons } from '../lib/icons';
+
+interface Props {
+  href: string;
+}
+
+const { href } = Astro.props;
+const host = new URL(href).hostname.replace(/^www\./, '');
+const github = host === 'github.com';
+const label = github ? 'GitHub' : host;
+---
+
+<a class="repo" href={href} aria-label={label} title={label}>
+  {
+    github ? (
+      <svg class="github" viewBox={icons.github.viewBox} aria-hidden="true" focusable="false">
+        <path d={icons.github.path} />
+      </svg>
+    ) : (
+      <svg class="code" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="m16 18 6-6-6-6M8 6l-6 6 6 6" />
+      </svg>
+    )
+  }
+</a>
+
+<style>
+  .repo {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    color: var(--muted);
+    transition: color 0.15s ease;
+  }
+
+  .repo:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  .repo svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  /* For a finger, a larger target around the small icon, without moving it. */
+  @media (pointer: coarse) {
+    .repo {
+      margin: -0.6rem;
+      padding: 0.6rem;
+    }
+  }
+
+  .github {
+    fill: currentColor;
+  }
+
+  .code {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>

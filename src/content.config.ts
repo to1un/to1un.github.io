@@ -38,20 +38,16 @@ const projects = defineCollection({
           z.strictObject({ icon: image(), bg: z.string() }),
         ]),
         tagline: z.string().optional(),
-        // Its name links to the post about it, else to its website, else to its repo. The website and
-        // the repo also show as small icons beside the name: the site by its own favicon (a local
-        // copy next to the file, SVG or PNG; never hotlinked), else an arrow, the repo by the GitHub
-        // mark. Any of them, or none.
+        // Its name links to the post about it, if there is one. Its one other link is its repo, on
+        // any host, a small icon beside the name: the GitHub mark, else code brackets.
         post: reference('writing').optional(),
-        url: z.url().optional(),
-        favicon: image().optional(),
-        repo: z.url({ hostname: /^github\.com$/, error: 'repo is a github.com URL' }).optional(),
+        repo: z.url().optional(),
         // Not shown; newer projects are listed first.
         year: z.number().int(),
         // upcoming: on its way, shown dimmed and last.
         status: z.enum(['active', 'upcoming', 'archived']),
         secret: z.literal(false).optional(),
-      }).refine((p) => !p.favicon || p.url, { message: 'a favicon needs the url of its site', path: ['favicon'] }),
+      }),
       // Not announced yet: shown last as a shadowed mark, nothing else. The name only tells the
       // file apart and never reaches the site.
       z.strictObject({ name: z.string(), secret: z.literal(true) }),
