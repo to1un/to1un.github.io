@@ -1,0 +1,669 @@
+---
+// The projects as books on a shelf: each a spine in its logo colour, the name down it in Noto Serif
+// (gilt while active), its year stamped at the foot. Heights, widths and the one book that leans
+// come from the names, so the shelf looks the same on every load. Upcoming: still shrink-wrapped.
+// Unannounced: under burlap, tied round, nothing to read. Archived: faded, leaning on its
+// neighbour. A lantern stands at the end, lit at night.
+// Hover or focus pulls a book out and shows its card under the shelf (name, repo, tagline,
+// status); a click pins it until Escape or a click elsewhere. Without JS (no data-scheme on
+// <html>, which the pre-paint script sets) every book stands on a plank of its own with its card
+// beside it. Needs the scene palette (--c-*) from an ancestor (paletteCss).
+import type { ProjectView } from '../lib/content';
+import { face, pathData, runs } from '../lib/font';
+import ProjectRepo from './ProjectRepo.astro';
+
+interface Props {
+  projects: ProjectView[];
+  id?: string; // prefix of the ids inside, unique per shelf on the page
+  label?: string; // a small heading above the shelf
+}
+
+const { projects, id = 'shelf', label } = Astro.props;
+
+// Names drawn as paths at build time: no webfont.
+const serif = face('noto-serif', 500);
+const capRatio = serif[0].tables.os2.sCapHeight / serif[0].unitsPerEm;
+/** `text` on one line at `size`, baseline at y 0, starting at x 0. */
+function line(text: string, size: number) {
+  let x = 0;
+  const parts: string[] = [];
+  for (const r of runs(text, serif)) {
+    parts.push(pathData(r.font.getPath(r.text, x, 0, size).commands));
+    x += r.font.getAdvanceWidth(r.text, size);
+  }
+  return { d: parts.join(''), w: x, cap: capRatio * size };
+}
+/** `text` at `size`, or smaller to fit in `room`. */
+const fit = (text: string, size: number, room: number) => line(text, Math.min(size, (size * room) / line(text, size).w));
+
+/** `text` in one line, or split into two at a word when one line would shrink it too far. */
+function lines(text: string, size: number, room: number) {
+  const words = text.split(' ');
+  if (line(text, size).w <= room * 1.25 || words.length < 2) return [fit(text, size, room)];
+  const half = Math.ceil(words.length / 2);
+  return [words.slice(0, half).join(' '), words.slice(half).join(' ')].map((t) => fit(t, size * 0.87, room));
+}
+
+/** A stable 32-bit number from a name (FNV-1a), for the spread of sizes. */
+const hash = (s: string) => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
+
+const STATUS = { active: 'Active', upcoming: 'Upcoming', archived: 'Archived' } as const;
+
+// Everything a book needs, worked out once. An unannounced one keeps nothing but its stand-in name
+// for screen readers (getProjects gives it that), hashed by its place, not its name.
+const books = projects.map((p, i) => {
+  const secret = Boolean(p.secret);
+  const h = hash(secret ? `secret-${i}` : p.name);
+  const height = 140 + ((h >>> 3) % 6) * 7; // 140 to 175
+  // Bands at head and foot, the year under them; the name runs down the room between.
+  const room = height - 50;
+  const names = secret ? [] : lines(p.name, 15, room);
+  const width = names.length > 1 ? 54 : 30 + (h % 5) * 4; // 30 to 46
+  return {
+    ...p,
+    secret,
+    h,
+    Tag: p.href ? ('a' as const) : ('span' as const),
+    label: secret ? p.name : `${p.name}, ${STATUS[p.status].toLowerCase()}`,
+    bg: p.logo?.bg ?? '#777',
+    w: width,
+    ht: height,
+    room,
+    names,
+    year: !secret && p.year ? line(String(p.year), 7) : undefined,
+    gap: i > 0 && (h >>> 9) % 4 === 0, // a little room before it now and then
+    lean: i > 0 && p.status === 'archived',
+  };
+});
+// The archived books lean. With none, one active book does (not the first: nothing to lean on).
+if (!books.some((b) => b.lean)) {
+  const pick = books
+    .slice(1)
+    .filter((b) => b.status === 'active' && !b.secret)
+    .sort((a, b) => b.h - a.h)[0];
+  if (pick) pick.lean = true;
+}
+for (const b of books) if (b.lean) b.gap = false;
+---
+
+<section class="shelf" aria-label={label ?? 'Projects'} style={`--gilt: url(#${id}-gilt)`}>
+  {label && <p class="label">{label}</p>}
+  <svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <linearGradient id={`${id}-gilt`} x1="0" y1="0" x2="1" y2="0">
+      <stop class="gilt-lo" offset="0" />
+      <stop class="gilt-hi" offset="0.45" />
+      <stop class="gilt-lo" offset="1" />
+    </linearGradient>
+  </svg>
+  <ul class="books">
+    {
+      books.map((p, i) => (
+        <li class:list={['item', p.status, { secret: p.secret, lean: p.lean, gap: p.gap }]}>
+          <button type="button" class="book" aria-controls={`${id}-${i}`}>
+            <span class="sr-only">{p.label}</span>
+            <svg class="art" viewBox={`0 0 ${p.w} ${p.ht}`} width={p.w} height={p.ht} aria-hidden="true" focusable="false">
+              <rect class="body" width={p.w} height={p.ht} rx="2.5" fill={p.secret ? undefined : p.bg} />
+              {!p.secret && (
+                <g class="print">
+                  <rect class="band" y="8" width={p.w} height="1.5" />
+                  <rect class="band" y="12" width={p.w} height="1" />
+                  <rect class="band" y={p.ht - 20} width={p.w} height="1" />
+                  <rect class="band" y={p.ht - 16.5} width={p.w} height="1.5" />
+                  {p.names.map((t, k, all) => (
+                    <path
+                      class="name"
+                      d={t.d}
+                      transform={`translate(${p.w / 2 + (all.length - 1) * (k === 0 ? 7 : -7) - t.cap / 2} ${21 + (p.room - t.w) / 2}) rotate(90)`}
+                    />
+                  ))}
+                  {p.year && <path class="year" d={p.year.d} transform={`translate(${(p.w - p.year.w) / 2} ${p.ht - 5.5})`} />}
+                </g>
+              )}
+              {p.status === 'upcoming' && !p.secret && (
+                <g class="film">
+                  <rect width={p.w} height={p.ht} rx="2.5" />
+                  <path d={`M0 ${p.ht * 0.3} L${p.w} ${p.ht * 0.18} L${p.w} ${p.ht * 0.26} L0 ${p.ht * 0.38}Z`} />
+                  <rect class="sticker" x={p.w / 2 - 9} y={p.ht - 42} width="18" height="12" rx="2" />
+                </g>
+              )}
+              {p.secret && (
+                <g class="cloth">
+                  <path d={`M-1 6 Q${p.w / 2} 0 ${p.w + 1} 6 L${p.w + 1} ${p.ht} L-1 ${p.ht}Z`} />
+                  <path class="fold" d={`M${p.w * 0.3} 8 Q${p.w * 0.4} ${p.ht / 2} ${p.w * 0.25} ${p.ht - 4}`} />
+                  <path class="fold" d={`M${p.w * 0.72} 6 Q${p.w * 0.62} ${p.ht / 2} ${p.w * 0.78} ${p.ht - 4}`} />
+                  <rect class="string" x="-1" y={p.ht * 0.42} width={p.w + 2} height="2.5" />
+                </g>
+              )}
+            </svg>
+          </button>
+          <div class="card" id={`${id}-${i}`}>
+            {p.secret ? (
+              <>
+                <p class="card-head">
+                  <span class="card-name">Unannounced</span>
+                </p>
+                <p class="card-tagline">Under cloth for now.</p>
+              </>
+            ) : (
+              <>
+                <p class="card-head">
+                  <p.Tag class="card-name" href={p.href}>
+                    {p.name}
+                  </p.Tag>
+                  {p.repo && <ProjectRepo href={p.repo} />}
+                </p>
+                {p.tagline && <p class="card-tagline">{p.tagline}</p>}
+              </>
+            )}
+            <p class="card-status">{STATUS[p.status]}</p>
+          </div>
+        </li>
+      ))
+    }
+    <li class="end" aria-hidden="true">
+      <svg class="lantern" viewBox="0 0 28 50" width="28" height="50" focusable="false">
+        <path class="handle" d="M9 9 A5 5 0 0 1 19 9" />
+        <rect class="metal" x="8" y="9" width="12" height="4" rx="1" />
+        <rect class="glass" x="7" y="13" width="14" height="27" rx="2" />
+        <circle class="halo" cx="14" cy="27" r="9" />
+        <rect class="wax" x="11.5" y="30" width="5" height="10" rx="0.5" />
+        <path class="flame" d="M14 21 C16 24 16.5 26.5 14 28.5 C11.5 26.5 12 24 14 21Z" />
+        <path class="bars" d="M10.5 13 V40 M17.5 13 V40" />
+        <rect class="brass" x="6" y="40" width="16" height="4" rx="1" />
+        <rect class="metal" x="5" y="44" width="18" height="2" rx="1" />
+      </svg>
+    </li>
+  </ul>
+  <p class="hint" aria-hidden="true">Hover or focus a spine to pull it out; click to keep it out.</p>
+</section>
+
+<script>
+  // A click pins a book out (one at a time); Escape or a click elsewhere puts it back.
+  function sync() {
+    for (const shelf of document.querySelectorAll('.shelf')) {
+      const active =
+        shelf.querySelector('.item:not(.closed):hover') ??
+        shelf.querySelector('.item:not(.closed):focus-within') ??
+        shelf.querySelector('.item.open');
+      for (const item of shelf.querySelectorAll('.item')) {
+        item.querySelector('.book')?.setAttribute('aria-expanded', String(item === active));
+      }
+    }
+  }
+
+  function pin(item: Element | null) {
+    for (const open of document.querySelectorAll('.shelf .item.open')) {
+      if (open !== item) open.classList.remove('open');
+    }
+    if (item) {
+      item.classList.remove('closed');
+      const on = item.classList.toggle('open');
+      if (!on) {
+        const book = item.querySelector<HTMLElement>('.book');
+        if (book && !book.matches(':focus-visible')) book.blur();
+        if (item.matches(':hover, :focus-within')) item.classList.add('closed');
+      }
+    }
+    sync();
+  }
+
+  for (const item of document.querySelectorAll<HTMLElement>('.shelf .item')) {
+    const clear = () => {
+      if (!item.matches(':hover, :focus-within')) item.classList.remove('closed');
+    };
+    item.addEventListener('pointerenter', sync);
+    item.addEventListener('pointerleave', () => {
+      clear();
+      sync();
+    });
+    item.addEventListener('focusin', sync);
+    item.addEventListener('focusout', () => {
+      queueMicrotask(() => {
+        clear();
+        sync();
+      });
+    });
+  }
+
+  // Only lean when there is a neighbour on the same row to lean on.
+  const leans = [...document.querySelectorAll<HTMLElement>('.shelf .item.lean')];
+  const checkLeans = () => {
+    for (const item of leans) {
+      const prev = item.previousElementSibling as HTMLElement | null;
+      item.classList.toggle('lean', Boolean(prev && prev.offsetTop === item.offsetTop));
+    }
+  };
+  checkLeans();
+  addEventListener('resize', checkLeans);
+  sync();
+
+  document.addEventListener('click', (e) => {
+    const target = e.target as Element;
+    const book = target.closest('.shelf .book');
+    if (book) pin(book.closest('.item'));
+    else if (!target.closest('.shelf .card')) pin(null);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const item = document.activeElement?.closest('.shelf .item');
+    pin(null);
+    item?.querySelector<HTMLElement>('.book')?.focus();
+    if (item?.matches(':hover, :focus-within')) item.classList.add('closed');
+    sync();
+  });
+</script>
+
+<style>
+  /* Wood from the scarecrow's rope. The shadow on the wall: by day a crisp one cast down and to
+     the right; at night the moon's, fainter, softer and nearly straight down. */
+  .shelf {
+    --wood: var(--c-rope);
+    --wood-lip: color-mix(in srgb, var(--c-rope) 70%, #000);
+    --cast: color-mix(in srgb, var(--c-wheatNear) 30%, transparent);
+    --cast-x: 3px;
+    --cast-y: 2px;
+    --cast-blur: 2px;
+    --plank: 10px;
+    --drop: 0.6rem; /* the plank's shadow under it */
+    --gilt-lo: #c9a04a;
+    --gilt-hi: #f2dea0;
+    --card: 7.5rem; /* the room under the shelf for the pulled book's card */
+    position: relative;
+    padding-bottom: calc(var(--card) + 0.5rem);
+  }
+
+  :global(:root[data-scheme='dark']) .shelf {
+    --cast: color-mix(in srgb, var(--c-silhouette) 75%, transparent);
+    --cast-x: 0.5px;
+    --cast-y: 3px;
+    --cast-blur: 6px;
+    --drop: 1.1rem;
+    --gilt-lo: #a8873f;
+    --gilt-hi: #d8c387;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-scheme])) .shelf {
+      --cast: color-mix(in srgb, var(--c-silhouette) 75%, transparent);
+      --cast-x: 0.5px;
+      --cast-y: 3px;
+      --cast-blur: 6px;
+      --drop: 1.1rem;
+      --gilt-lo: #a8873f;
+      --gilt-hi: #d8c387;
+    }
+  }
+
+  .shelf + .shelf {
+    margin-top: 2.5rem;
+  }
+
+  .label {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+    font: 0.75rem/1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .defs {
+    position: absolute;
+  }
+
+  .gilt-lo {
+    stop-color: var(--gilt-lo);
+  }
+
+  .gilt-hi {
+    stop-color: var(--gilt-hi);
+  }
+
+  /* Rows of books on planks. Every item is one row tall, so each wrapped row lands on its own
+     plank, drawn by the background with its shadow under it. */
+  .books {
+    --row: 12.25rem;
+    --gap: 2.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    column-gap: 2px;
+    row-gap: calc(var(--plank) + var(--gap));
+    margin: 0;
+    padding: 0 0.75rem calc(var(--plank) + var(--drop));
+    list-style: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0 var(--row),
+      var(--wood) var(--row) calc(var(--row) + var(--plank) - 3px),
+      var(--wood-lip) calc(var(--row) + var(--plank) - 3px) calc(var(--row) + var(--plank)),
+      var(--cast) calc(var(--row) + var(--plank)),
+      transparent calc(var(--row) + var(--plank) + var(--drop)) calc(var(--row) + var(--plank) + var(--gap))
+    );
+    border-radius: 2px;
+  }
+
+  .item {
+    display: flex;
+    align-items: flex-end;
+    height: var(--row);
+  }
+
+  .item.gap {
+    margin-left: 5px;
+  }
+
+  .card p {
+    margin: 0;
+  }
+
+  .book {
+    display: block;
+    flex: none;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .book:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 3px;
+  }
+
+  .art {
+    --pull: -16px;
+    display: block;
+    overflow: visible;
+    transform-origin: 50% 100%;
+    transform: translateY(calc(var(--o, 0) * var(--pull))) rotate(calc((1 - var(--o, 0)) * var(--tilt, 0deg)));
+    filter: saturate(var(--sat, 1)) brightness(var(--bright, 1))
+      drop-shadow(var(--cast-x) var(--cast-y) var(--cast-blur) var(--cast))
+      drop-shadow(0 calc(var(--o, 0) * 6px) calc(var(--o, 0) * 6px) rgb(0 0 0 / 0.22));
+    transition:
+      transform 0.22s ease,
+      filter 0.22s ease;
+  }
+
+  /* Out: the hovered one, else the focused one, else the pinned one. Never two at once. */
+  .item:is(:hover, :focus-within):not(.closed),
+  .item.open {
+    --o: 1;
+    --show: visible;
+  }
+
+  .books:has(.item:not(.closed):hover) .item:not(:hover),
+  .books:has(.item:not(.closed):focus-within):not(:has(.item:not(.closed):hover)) .item:not(:focus-within) {
+    --o: 0;
+    --show: hidden;
+  }
+
+  .shelf:has(.item:is(:hover, :focus-within):not(.closed), .item.open) .hint {
+    visibility: hidden;
+  }
+
+  /* The card under the shelf, the same place for every book. */
+  .card,
+  .hint {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: var(--card);
+    margin: 0;
+    padding: 0.9rem 0.75rem 0;
+  }
+
+  .hint {
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .card {
+    display: grid;
+    align-content: start;
+    gap: 0.3rem;
+    background: var(--bg);
+    visibility: var(--show, hidden);
+    opacity: var(--o, 0);
+    transition: opacity 0.18s ease;
+  }
+
+  /* Bridges the plank and its shadow above the card, so the pointer can cross from a spine to
+     the links inside without losing :hover. */
+  .card::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: calc(var(--plank) + var(--drop) + 0.5rem);
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .card-name {
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  .card-tagline {
+    display: -webkit-box;
+    overflow: hidden;
+    max-width: 40rem;
+    color: var(--muted);
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .card-status {
+    color: var(--muted);
+    font: 0.6875rem/1.4 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Without JS: a plank for each book, its card beside it, all of them showing. */
+  :global(:root:not([data-scheme])) .shelf {
+    padding-bottom: 0;
+  }
+
+  :global(:root:not([data-scheme])) .item {
+    flex: 1 0 100%;
+    gap: 1rem;
+  }
+
+  :global(:root:not([data-scheme])) .card {
+    position: static;
+    flex: 1;
+    min-width: 0;
+    height: auto;
+    padding: 0 0 0.75rem;
+    background: none;
+    visibility: visible;
+    opacity: 1;
+  }
+
+  :global(:root:not([data-scheme])) .card::before {
+    content: none;
+  }
+
+  :global(:root:not([data-scheme])) .lean {
+    margin-left: 0;
+  }
+
+  :global(:root:not([data-scheme])) .lean .art {
+    --tilt: 0deg;
+  }
+
+  :global(:root:not([data-scheme])) .hint {
+    display: none;
+  }
+
+  /* The spine. */
+  .band {
+    fill: rgb(255 255 255 / 0.32);
+  }
+
+  .name {
+    fill: #fbf6ea;
+  }
+
+  .active .name {
+    fill: var(--gilt);
+  }
+
+  .year {
+    fill: rgb(251 246 234 / 0.7);
+  }
+
+  /* Leaning on its neighbour, until pulled out. */
+  .lean {
+    margin-left: 8px;
+  }
+
+  .lean .art {
+    --tilt: -4deg;
+    transform-origin: 100% 100%;
+  }
+
+  .archived .art {
+    --sat: 0.55;
+    --bright: 0.92;
+  }
+
+  /* Shrink-wrapped: a clear film with a glint, the colour a little dulled under it. */
+  .upcoming:not(.secret) .print {
+    opacity: 0.8;
+  }
+
+  .film rect:first-child {
+    fill: rgb(255 255 255 / 0.1);
+    stroke: rgb(255 255 255 / 0.55);
+    stroke-width: 1;
+  }
+
+  .film path {
+    fill: rgb(255 255 255 / 0.28);
+  }
+
+  .film .sticker {
+    fill: var(--c-pin);
+  }
+
+  /* Under a cloth: burlap, a fold or two, tied round. */
+  .secret .body {
+    fill: var(--c-sackShade);
+  }
+
+  .cloth path:first-child {
+    fill: var(--c-sack);
+  }
+
+  .fold {
+    fill: none;
+    stroke: var(--c-sackShade);
+    stroke-width: 1.5;
+  }
+
+  .string {
+    fill: var(--c-rope);
+  }
+
+  /* The lantern at the end of the shelf: cold by day, lit at night. */
+  .end {
+    display: flex;
+    align-items: flex-end;
+    height: var(--row);
+    margin-left: auto;
+    padding-left: 0.75rem;
+  }
+
+  .lantern {
+    display: block;
+    overflow: visible;
+    filter: drop-shadow(var(--cast-x) var(--cast-y) var(--cast-blur) var(--cast));
+  }
+
+  .handle,
+  .bars {
+    fill: none;
+    stroke: var(--c-hat);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+  }
+
+  .metal {
+    fill: var(--c-hat);
+  }
+
+  .brass {
+    fill: var(--c-pin);
+  }
+
+  .glass {
+    fill: color-mix(in srgb, var(--fg) 7%, transparent);
+    stroke: var(--c-hatShade);
+    stroke-width: 1;
+  }
+
+  .wax {
+    fill: var(--c-sack);
+  }
+
+  .flame,
+  .halo {
+    opacity: 0;
+  }
+
+  .flame {
+    fill: #f6c35a;
+  }
+
+  .halo {
+    fill: #f6c35a;
+    filter: blur(4px);
+  }
+
+  :global(:root[data-scheme='dark']) .flame {
+    opacity: 1;
+  }
+
+  :global(:root[data-scheme='dark']) .halo {
+    opacity: 0.35;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-scheme])) .flame {
+      opacity: 1;
+    }
+
+    :global(:root:not([data-scheme])) .halo {
+      opacity: 0.35;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .art,
+    .card {
+      transition: none;
+    }
+  }
+
+  @media (max-width: 30em) {
+    .shelf {
+      --card: 8.5rem;
+    }
+
+    .books {
+      padding-inline: 0.5rem;
+    }
+  }
+</style>

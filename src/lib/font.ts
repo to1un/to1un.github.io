@@ -1,4 +1,4 @@
-// Text drawn as SVG paths at build time (the link preview cards, the project marks), from the
+// Text drawn as SVG paths at build time (the link preview cards, the names on the project spines), from the
 // @fontsource packages, so it looks the same on any machine and needs no webfont. Each weight comes
 // as two files, latin and latin-ext (ğ, ş, ı, İ): a character takes its glyph from the first file
 // that has it.

@@ -13,10 +13,11 @@ export interface ProjectView {
   name: string;
   tagline?: string;
   status: 'active' | 'upcoming' | 'archived';
-  secret?: true; // not announced: the name is a stand-in for screen readers, the mark a silhouette
+  secret?: true; // not announced: the name is a stand-in for screen readers, the book under cloth
   href?: string; // the post about it
   repo?: string; // its repository, on any host
-  logo?: { bg: string; mono: string } | { bg: string; icon: ImageMetadata }; // a tile with letters, or with an icon
+  year?: number; // stamped at the spine's foot
+  logo?: { bg: string; mono: string } | { bg: string; icon: ImageMetadata }; // its bg is the book's colour
 }
 
 /** Projects newest first, the upcoming ones last and the unannounced ones after them. */
@@ -33,6 +34,7 @@ export async function getProjects(): Promise<ProjectView[]> {
             status: data.status,
             href: data.post && `/writing/${data.post.id}/`,
             repo: data.repo,
+            year: data.year,
             logo: data.logo,
           },
     )

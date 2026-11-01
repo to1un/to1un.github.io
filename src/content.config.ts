@@ -30,9 +30,8 @@ const projects = defineCollection({
     z.union([
       z.object({
         name: z.string(),
-        // The mark (src/lib/mark.ts): a tile in the colour `bg` with one or two letters (the standard,
-        // and a placeholder until the project has a real icon), or with the project's own icon (an SVG
-        // next to the file, drawn for the 48px tile).
+        // `bg` is the colour of its book on the shelf (ProjectShelf.astro). `mono` (one or two
+        // letters) or `icon` (an SVG next to the file) is its mark, not shown anywhere for now.
         logo: z.union([
           z.strictObject({ mono: z.string().regex(/^\p{L}{1,2}$/u, 'mono is one or two letters'), bg: z.string() }),
           z.strictObject({ icon: image(), bg: z.string() }),
@@ -42,14 +41,14 @@ const projects = defineCollection({
         // any host, a small icon beside the name: the GitHub mark, else code brackets.
         post: reference('writing').optional(),
         repo: z.url().optional(),
-        // Not shown; newer projects are listed first.
+        // Stamped at the spine's foot; newer projects are listed first.
         year: z.number().int(),
-        // upcoming: on its way, shown dimmed and last.
+        // upcoming: on its way, shrink-wrapped and last. archived: faded, leaning.
         status: z.enum(['active', 'upcoming', 'archived']),
         secret: z.literal(false).optional(),
       }),
-      // Not announced yet: shown last as a shadowed mark, nothing else. The name only tells the
-      // file apart and never reaches the site.
+      // Not announced yet: shown last as a book under burlap, nothing else. The name only tells
+      // the file apart and never reaches the site.
       z.strictObject({ name: z.string(), secret: z.literal(true) }),
     ]),
 });
