@@ -85,8 +85,10 @@ export function skyCss() {
 }
 
 /** Sets data-scheme on <html> before first paint: the visitor's stored choice, else the system's
- *  colour scheme (followed live while nothing is stored). Exposes window.__sky.set for the header
- *  toggle and fires `sky` on window whenever the scheme changes. */
+ *  colour scheme (followed live while nothing is stored). A choice is kept only while it differs
+ *  from the system's scheme; once they match it is dropped and the site follows the system.
+ *  Exposes window.__sky.set for the header toggle and fires `sky` on window whenever the scheme
+ *  changes. */
 export function runSky(key: string) {
   const root = document.documentElement;
   const system = matchMedia('(prefers-color-scheme: dark)');
@@ -100,25 +102,39 @@ export function runSky(key: string) {
       return null;
     }
   };
+  const systemScheme = (): Scheme => (system.matches ? 'dark' : 'light');
+  // Drops the choice, so the site follows the system again.
+  const forget = () => {
+    chosen = null;
+    try {
+      localStorage.removeItem(key);
+    } catch {}
+  };
   const sky = {
     scheme: 'light' as Scheme,
     set(scheme: Scheme) {
-      chosen = scheme;
-      try {
-        localStorage.setItem(key, scheme);
-      } catch {}
+      if (scheme === systemScheme()) forget();
+      else {
+        chosen = scheme;
+        try {
+          localStorage.setItem(key, scheme);
+        } catch {}
+      }
       update();
     },
   };
   const update = () => {
-    const scheme = stored() ?? chosen ?? (system.matches ? 'dark' : 'light');
+    const scheme = stored() ?? chosen ?? systemScheme();
     if (root.dataset.scheme === scheme) return;
     root.dataset.scheme = sky.scheme = scheme; // tokens, scenes and Shiki follow it in CSS
     window.dispatchEvent(new Event('sky'));
   };
   window.__sky = sky;
   update();
-  system.addEventListener('change', update);
+  system.addEventListener('change', () => {
+    if ((stored() ?? chosen) === systemScheme()) forget(); // the system caught up with the choice
+    update();
+  });
   // Restored from the back/forward cache, or changed in another tab: follow the stored choice.
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) update();
