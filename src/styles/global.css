@@ -253,10 +253,39 @@ main > h1 {
   padding-block: 2rem 3rem;
   color: var(--muted);
   font-size: 0.875rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
 }
 
 .site-footer p {
   margin: 0;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer-links a {
+  display: block;
+  color: inherit;
+}
+
+.footer-links a:hover {
+  color: var(--fg);
+}
+
+.footer-links svg {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
 }
 
 /* The scene pages (home, about) morph into each other: the scarecrow, the sun and the wheat in

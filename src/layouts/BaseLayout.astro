@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { site, type Lang } from '../site';
+import { icons } from '../lib/icons';
 import { inlineSource } from '../lib/inline';
 import ThemeToggle from '../components/ThemeToggle.astro';
 import { SKY, runSky, skyCss } from '../lib/sky';
@@ -28,6 +29,8 @@ const rss = new URL('rss.xml', Astro.site);
 const cardUrl = new URL(card ?? '/og/site.png', Astro.site);
 const cardAlt = `${card ? (title ?? homeTitle) : homeTitle}, beside a scarecrow in a field ${site.preview === 'night' ? 'by moonlight' : 'in the sun'}`;
 const path = Astro.url.pathname;
+// Email and GitHub also sit in the footer (site.links, same order).
+const contact = site.links.filter((link) => link.icon === 'email' || link.icon === 'github');
 const nav = [
   { label: 'Writing', href: '/writing/' },
   { label: 'Projects', href: '/projects/' },
@@ -87,6 +90,24 @@ const skyScript = `(${inlineSource(runSky)})(${JSON.stringify(SKY.key)})`;
       <slot />
     </main>
     <footer class="site-footer" lang={chromeLang}>
+      <ul class="footer-links" aria-label="Contact">
+        {
+          contact.map((link) => (
+            <li>
+              <a
+                href={link.url}
+                rel={link.icon === 'github' ? 'me' : undefined}
+                aria-label={link.label}
+                title={link.label}
+              >
+                <svg viewBox={icons[link.icon].viewBox} aria-hidden="true" focusable="false">
+                  <path d={icons[link.icon].path} />
+                </svg>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
       <p>© {new Date().getFullYear()}{site.owner && ` ${site.owner}`} · <a href="/rss.xml">RSS</a></p>
     </footer>
   </body>

@@ -36,7 +36,7 @@ export const site = {
   description: owner ? `Personal website of ${owner}.` : 'A personal website: writing and projects.',
   team,
   preview,
-  /** Contact and profiles on the about page, in this order; profiles get rel="me". */
+  /** Contact and profiles on the about page, in this order; profiles get rel="me". Email and GitHub also show in the footer. */
   links: [
     { label: 'Email', url: 'mailto:contact@to1un.com', icon: 'email' },
     { label: 'GitHub', url: github, icon: 'github' },
