@@ -90,6 +90,7 @@ const skyScript = `(${inlineSource(runSky)})(${JSON.stringify(SKY.key)})`;
       <slot />
     </main>
     <footer class="site-footer" lang={chromeLang}>
+      <p>© {new Date().getFullYear()}{site.owner && ` ${site.owner}`} · <a href="/rss.xml">RSS</a></p>
       <ul class="footer-links" aria-label="Contact">
         {
           contact.map((link) => (
@@ -108,7 +109,6 @@ const skyScript = `(${inlineSource(runSky)})(${JSON.stringify(SKY.key)})`;
           ))
         }
       </ul>
-      <p>© {new Date().getFullYear()}{site.owner && ` ${site.owner}`} · <a href="/rss.xml">RSS</a></p>
     </footer>
   </body>
 </html>
