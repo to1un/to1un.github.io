@@ -33,7 +33,7 @@ export const site = {
   name: 'Home',
   owner,
   handle,
-  description: owner ? `Personal website of ${owner}.` : 'A personal website: writing and projects.',
+  description: owner ? `Personal website of ${owner}.` : 'A personal website: writing and technical notes.',
   team,
   preview,
   /** Contact and profiles on the about page, in this order; profiles get rel="me". Email and GitHub also show in the footer. */

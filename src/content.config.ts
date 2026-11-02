@@ -1,4 +1,4 @@
-import { defineCollection, reference } from 'astro:content';
+import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
@@ -24,33 +24,4 @@ const writing = defineCollection({
     }),
 });
 
-const projects = defineCollection({
-  loader: glob({ base: './src/content/projects', pattern: '**/*.{yaml,yml}' }),
-  schema: ({ image }) =>
-    z.union([
-      z.object({
-        name: z.string(),
-        // `bg` is the colour of its book on the shelf (ProjectShelf.astro). `mono` (one or two
-        // letters) or `icon` (an SVG next to the file) is its mark, not shown anywhere for now.
-        logo: z.union([
-          z.strictObject({ mono: z.string().regex(/^\p{L}{1,2}$/u, 'mono is one or two letters'), bg: z.string() }),
-          z.strictObject({ icon: image(), bg: z.string() }),
-        ]),
-        tagline: z.string().optional(),
-        // Its name links to the post about it, if there is one. Its one other link is its repo, on
-        // any host, a small icon beside the name: the GitHub mark, else code brackets.
-        post: reference('writing').optional(),
-        repo: z.url().optional(),
-        // Stamped at the spine's foot; newer projects are listed first.
-        year: z.number().int(),
-        // upcoming: on its way, shrink-wrapped and last. archived: faded, leaning.
-        status: z.enum(['active', 'upcoming', 'archived']),
-        secret: z.literal(false).optional(),
-      }),
-      // Not announced yet: shown last as a book under burlap, nothing else. The name only tells
-      // the file apart and never reaches the site.
-      z.strictObject({ name: z.string(), secret: z.literal(true) }),
-    ]),
-});
-
-export const collections = { writing, projects };
+export const collections = { writing };

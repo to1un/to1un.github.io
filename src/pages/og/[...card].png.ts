@@ -7,7 +7,7 @@ import { site } from '../../site';
 
 export const getStaticPaths = (async () => {
   const cards = [
-    { card: 'site', title: site.owner ?? 'Home', line: 'Writing and projects' },
+    { card: 'site', title: site.owner ?? 'Home', line: 'Technical notes and writeups' },
     ...(await getPosts()).map((post) => ({
       card: `writing/${post.id}`,
       title: post.data.title,
