@@ -5,9 +5,21 @@ import sitemap from '@astrojs/sitemap';
 // The only place the site URL lives.
 const SITE = 'https://to1un.com';
 
+// Posts migrated from the old Jekyll (Chirpy) blog, which served them at /posts/<slug>/.
+const migratedPosts = [
+  'malware-analysis',
+  'boss-of-the-soc-v1-scenarios1',
+  'boss-of-the-soc-v1-scenarios2',
+  'pickle-rick',
+  'purplelab',
+  'splunk-lab',
+  'eve-ng-vmware-network-connection',
+];
+
 export default defineConfig({
   site: SITE,
   server: { port: 4322 },
+  redirects: Object.fromEntries(migratedPosts.map((slug) => [`/posts/${slug}`, `/writing/${slug}/`])),
   integrations: [sitemap()],
   markdown: {
     shikiConfig: {
