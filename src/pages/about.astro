@@ -3,6 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import AboutScene from '../components/AboutScene.astro';
 import { icons } from '../lib/icons';
 import { site } from '../site';
+
+const email = site.links.find((link) => link.url.startsWith('mailto:'))?.url;
 ---
 
 <BaseLayout title="About" description={site.owner ? `About ${site.owner}.` : 'About this site and its author.'}>
@@ -11,21 +13,31 @@ import { site } from '../site';
   <div class="about">
     <div class="about-text">
       <div class="bio">
-        <p>A short introduction will go here.</p>
+        <p>
+          I'm a curious engineer, happiest on roads I don't know yet. Right now that road is cybersecurity, on both
+          sides of the terminal: breaking things in a lab to see how attacks work, and digging through logs and packets
+          to see what they leave behind.
+        </p>
+        <p>
+          I also build small tools when I need them in my own setup, and write down what I figure out here. I'm
+          Security+ certified, and you can reach me at <a href={email}>contact@to1un.com</a>.
+        </p>
       </div>
 
-      <ul class="links" aria-label="Contact and profiles">
+      <ul class="links" aria-label="Profiles">
         {
-          site.links.map((link) => (
-            <li>
-              <a href={link.url} rel={link.url.startsWith('mailto:') ? undefined : 'me'}>
-                <svg class="link-icon" viewBox={icons[link.icon].viewBox} aria-hidden="true" focusable="false">
-                  <path d={icons[link.icon].path} />
-                </svg>
-                {link.label}
-              </a>
-            </li>
-          ))
+          site.links
+            .filter((link) => !link.url.startsWith('mailto:'))
+            .map((link) => (
+              <li>
+                <a href={link.url} rel="me">
+                  <svg class="link-icon" viewBox={icons[link.icon].viewBox} aria-hidden="true" focusable="false">
+                    <path d={icons[link.icon].path} />
+                  </svg>
+                  {link.label}
+                </a>
+              </li>
+            ))
         }
       </ul>
     </div>

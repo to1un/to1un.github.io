@@ -41,10 +41,5 @@ export const site = {
     { label: 'Email', url: 'mailto:contact@to1un.com', icon: 'email' },
     { label: 'GitHub', url: github, icon: 'github' },
     { label: 'TryHackMe', url: 'https://tryhackme.com/p/to1un', icon: 'tryhackme' },
-    {
-      label: 'Hack The Box',
-      url: 'https://profile.hackthebox.com/profile/01a18368-f2ff-700a-9d3c-821502c18b26',
-      icon: 'hackthebox',
-    },
   ] satisfies SiteLink[],
 };

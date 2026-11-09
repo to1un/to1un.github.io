@@ -270,4 +270,4 @@ ELK servisleri, VirtualBox durumu ve Flask backend kaynak tüketimini gösterir.
 
 ### Splunk Entegrasyonu ve API
 
-Splunk üzerinde analiz yapmak isteyenler için [PurpleLab Integration App for Splunk](https://github.com/Krook9d/TA-Purplelab-Splunk) eklentisi mevcuttur. Dış araçlar ve CI/CD otomasyonları ile entegrasyon için [PurpleLab REST API](https://github.com/Krook9d/PurpleLab/blob/main/Documentation/flask_app_documentation.md) kullanılabilir.
+Splunk üzerinde analiz yapmak isteyenler için [PurpleLab Integration App for Splunk](https://github.com/Krook9d/TA-Purplelab-Splunk) eklentisi mevcuttur. Detaylı kurulum ve laboratuvar mimarisi için [PurpleLab dokümantasyonu](https://github.com/Krook9d/PurpleLab) incelenebilir.
